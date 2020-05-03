@@ -1,0 +1,15 @@
+[{
+    "step_title": "Urbackup",
+    "items": [{
+	"type": "textfield",
+        "desc": "Urbackup backup Pfad. Hier werden die Dateien der Backupclients gespeichert.",
+        "subitems": [{
+            "key": "wizard_backup_dir",
+            "desc": "Urbackup Sicherungspfad",
+            "defaultValue": "/mnt/backups/urbackup",
+            "validator": {
+              "allowBlank": false
+             }
+          }]
+     }]
+}]
