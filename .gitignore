@@ -2,11 +2,13 @@ distrib
 packages
 native/*/work*
 cross/*/work*
+cross/*/build*
 kernel/*/work*
 spk/*/work*
+spk/*/build*
 diyspk/*/work*
-toolchains/*/work*
-toolchains/*/*_done
+toolchain/*/work*
+toolchain/*/*_done
 toolkit/*/work*
 local.mk
 *.DS_Store

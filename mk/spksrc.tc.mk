@@ -6,6 +6,8 @@ default: all
 WORK_DIR := $(shell pwd)/work
 include ../../mk/spksrc.directories.mk
 
+include ../../mk/spksrc.common.mk
+
 
 # Configure the included makefiles
 URLS             = $(TC_DIST_SITE)/$(TC_DIST_NAME)
@@ -18,7 +20,7 @@ PKG_DIST_FILE    = $(TC_DIST_FILE)
 else
 LOCAL_FILE       = $(TC_DIST_NAME)
 endif
-DISTRIB_DIR      = $(TOOLCHAINS_DIR)/$(TC_VERS)
+DISTRIB_DIR      = $(TOOLCHAIN_DIR)/$(TC_VERS)
 DIST_FILE        = $(DISTRIB_DIR)/$(LOCAL_FILE)
 DIST_EXT         = $(TC_EXT)
 TC_LOCAL_VARS_MK = $(WORK_DIR)/tc_vars.mk
@@ -83,6 +85,14 @@ tc_vars: fix
 	@echo TC_BUILD := $(TC_BUILD)
 	@echo TC_OS_MIN_VER := $(TC_OS_MIN_VER)
 	@echo TC_ARCH := $(TC_ARCH)
+# Add "+" to EXTRAVERSION for kernels version >= 4.4
+ifeq ($(call version_ge, ${TC_KERNEL}, 4.4),1)
+	@echo TC_KERNEL := $(TC_KERNEL)+
+else
+	@echo TC_KERNEL := $(TC_KERNEL)
+endif
+	@echo TC_GCC := $(TC_GCC)
+	@echo TC_GLIBC := $(TC_GLIBC)
 
 
 ### Clean rules

@@ -1,5 +1,5 @@
 
-AVAILABLE_TCS = $(notdir $(wildcard toolchains/syno-*))
+AVAILABLE_TCS = $(notdir $(wildcard toolchain/syno-*))
 AVAILABLE_ARCHS = $(notdir $(subst syno-,/,$(AVAILABLE_TCS)))
 SUPPORTED_SPKS = $(sort $(patsubst spk/%/Makefile,%,$(wildcard spk/*/Makefile)))
 
@@ -26,7 +26,7 @@ native-clean:
 	done
 
 toolchain-clean:
-	@for tc in $(dir $(wildcard toolchains/*/Makefile)) ; \
+	@for tc in $(dir $(wildcard toolchain/*/Makefile)) ; \
 	do \
 	    $(MAKE) -C $${tc} clean ; \
 	done
@@ -91,7 +91,7 @@ endef
 $(foreach arch,$(AVAILABLE_ARCHS),$(foreach spk,$(SUPPORTED_SPKS),$(eval $(call SPK_ARCH_template,$(spk),$(arch)))))
 
 prepare: downloads
-	@for tc in $(dir $(wildcard toolchains/*/Makefile)) ; \
+	@for tc in $(dir $(wildcard toolchain/*/Makefile)) ; \
 	do \
 	    $(MAKE) -C $${tc} ; \
 	done
@@ -115,7 +115,7 @@ native-digests:
 	done
 
 toolchain-digests:
-	@for tc in $(dir $(wildcard toolchains/*/Makefile)) ; \
+	@for tc in $(dir $(wildcard toolchain/*/Makefile)) ; \
 	do \
 	    $(MAKE) -C $${tc} digests ; \
 	done
@@ -145,34 +145,34 @@ toolchains: $(addprefix toolchain-,$(AVAILABLE_ARCHS))
 kernel-modules: $(addprefix kernel-,$(AVAILABLE_ARCHS))
 
 toolchain-%:
-	-@cd toolchains/syno-$*/ && MAKEFLAGS= $(MAKE)
+	-@cd toolchain/syno-$*/ && MAKEFLAGS= $(MAKE)
 
 kernel-%:
 	-@cd kernel/syno-$*/ && MAKEFLAGS= $(MAKE)
 
-setup: local.mk dsm-6.1
+setup: local.mk dsm-6.1 dsm-7.0
 
 local.mk:
 	@echo "Creating local configuration \"local.mk\"..."
-	@echo "PUBLISH_URL=" > $@
-	@echo "PUBLISH_API_KEY=" >> $@
-	@echo "MAINTAINER?=" >> $@
-	@echo "MAINTAINER_URL=" >> $@
-	@echo "DISTRIBUTOR=" >> $@
-	@echo "DISTRIBUTOR_URL=" >> $@
-	@echo "REPORT_URL=" >> $@
-	@echo "DEFAULT_TC=" >> $@
-	@echo "#PARALLEL_MAKE=max" >> $@
+	@echo "PUBLISH_URL =" > $@
+	@echo "PUBLISH_API_KEY =" >> $@
+	@echo "MAINTAINER ?=" >> $@
+	@echo "MAINTAINER_URL ?=" >> $@
+	@echo "DISTRIBUTOR =" >> $@
+	@echo "DISTRIBUTOR_URL =" >> $@
+	@echo "REPORT_URL =" >> $@
+	@echo "DEFAULT_TC =" >> $@
+	@echo "#PARALLEL_MAKE = max" >> $@
 
 dsm-%: local.mk
 	@echo "Setting default toolchain version to DSM-$*"
-	@sed -i "s|DEFAULT_TC.*|DEFAULT_TC=$*|" local.mk
+	@grep -q "^DEFAULT_TC.*=.*$*.*" local.mk || sed -i "/^DEFAULT_TC =/s/$$/ $*/" local.mk
 
 setup-synocommunity: setup
-	@sed -i -e "s|PUBLISH_URL=.*|PUBLISH_URL=https://api.synocommunity.com|" \
-		-e "s|MAINTAINER?=.*|MAINTAINER?=SynoCommunity|" \
-		-e "s|MAINTAINER_URL=.*|MAINTAINER_URL=https://synocommunity.com|" \
-		-e "s|DISTRIBUTOR=.*|DISTRIBUTOR=SynoCommunity|" \
-		-e "s|DISTRIBUTOR_URL=.*|DISTRIBUTOR_URL=https://synocommunity.com|" \
-		-e "s|REPORT_URL=.*|REPORT_URL=https://github.com/SynoCommunity/spksrc/issues|" \
+	@sed -i -e "s|PUBLISH_URL\s*=.*|PUBLISH_URL = https://api.synocommunity.com|" \
+		-e "s|MAINTAINER\s*?=.*|MAINTAINER ?= SynoCommunity|" \
+		-e "s|MAINTAINER_URL\s*?=.*|MAINTAINER_URL ?= https://synocommunity.com|" \
+		-e "s|DISTRIBUTOR\s*=.*|DISTRIBUTOR = SynoCommunity|" \
+		-e "s|DISTRIBUTOR_URL\s*=.*|DISTRIBUTOR_URL = https://synocommunity.com|" \
+		-e "s|REPORT_URL\s*=.*|REPORT_URL = https://github.com/SynoCommunity/spksrc/issues|" \
 		local.mk

@@ -1,10 +1,9 @@
 PKG_NAME = x265
-PKG_VERS = 3.4
+PKG_VERS = 3.5
 PKG_EXT = tar.gz
-PKG_DIST_NAME = $(PKG_VERS).$(PKG_EXT)
-PKG_DIST_SITE = https://github.com/videolan/x265/archive
-PKG_DIST_FILE = $(PKG_NAME)-$(PKG_VERS).$(PKG_EXT)
-PKG_DIR = $(PKG_NAME)-$(PKG_VERS)/source
+PKG_DIST_NAME = $(PKG_NAME)_$(PKG_VERS).$(PKG_EXT)
+PKG_DIST_SITE = https://bitbucket.org/multicoreware/x265_git/downloads
+PKG_DIR = $(PKG_NAME)_$(PKG_VERS)/source
 
 DEPENDS =
 OPTIONAL_DEPENDS = native/nasm cross/libnuma
@@ -30,39 +29,41 @@ include ../../mk/spksrc.cross-cc.mk
 
 # gcc version above 4.8 required to support hdr10plus
 PLIST_TRANSFORM = sed -e '/:lib\/libhdr10plus.so/d'
-ifeq ($(findstring $(TCVERSION), "6.0.2 6.1 6.2"),$(TCVERSION))
-ifneq ($(findstring $(ARCH), $(ARM5_ARCHES)),$(ARCH))
+ifneq ($(findstring $(ARCH),$(ARMv5_ARCHS)),$(ARCH))
 CMAKE_ARGS += -DENABLE_HDR10_PLUS=ON
 PLIST_TRANSFORM = cat
 endif
+
+ifeq ($(call version_ge, ${TCVERSION}, 7.0),1)
+CMAKE_ARGS += -DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_C99_MATH
 endif
 
-ifeq ($(findstring $(ARCH), $(ARM5_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(ARMv5_ARCHS)),$(ARCH))
 CMAKE_ARGS += -DCROSS_COMPILE_ARM=ON -DENABLE_ASSEMBLY=OFF -DCMAKE_SYSTEM_PROCESSOR=armv5
 endif
 
-ifeq ($(findstring $(ARCH), $(ARM7_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(ARMv7_ARCHS) $(ARMv7L_ARCHS)),$(ARCH))
 CMAKE_ARGS += -DCMAKE_CXX_FLAGS=-fPIC -DCROSS_COMPILE_ARM=ON -DENABLE_ASSEMBLY=OFF
 CMAKE_ARGS += -DCMAKE_SYSTEM_PROCESSOR=armv7
 endif
 
-ifeq ($(findstring $(ARCH), $(ARM8_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(ARMv8_ARCHS)),$(ARCH))
 CMAKE_ARGS += -DCMAKE_CXX_FLAGS=-fPIC -DCROSS_COMPILE_ARM=ON -DENABLE_ASSEMBLY=OFF
 CMAKE_ARGS += -DCMAKE_SYSTEM_PROCESSOR=aarch64
 endif
 
-ifeq ($(findstring $(ARCH), $(PPC_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(PPC_ARCHS)),$(ARCH))
 CMAKE_ARGS += -DCMAKE_SYSTEM_PROCESSOR=ppc64 -DENABLE_ALTIVEC=OFF -DCPU_POWER8=OFF
 endif
 
-ifeq ($(findstring $(ARCH), $(x64_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(x64_ARCHS)),$(ARCH))
 DEPENDS += native/nasm cross/libnuma
 ENV += PATH=$(NASM_PATH):$$PATH
 ENV += AS=$(NASM_PATH)/nasm
 CMAKE_ARGS += -DCMAKE_SYSTEM_PROCESSOR=x86_64
 endif
 
-ifeq ($(findstring $(ARCH), $(x86_ARCHES)),$(ARCH))
+ifeq ($(findstring $(ARCH),$(i686_ARCHS)),$(ARCH))
 DEPENDS += native/nasm cross/libnuma
 ENV += PATH=$(NASM_PATH):$$PATH
 ENV += AS=$(NASM_PATH)/nasm
@@ -79,7 +80,7 @@ endif
 .PHONY: $(PKG_DIR)/libx265_main12.a $(PKG_DIR)/libx265_main10.a x265_configure
 
 # First create specific static libraries with build options for 12 and 10 bit depth
-PKG_WORK_DIR = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERS)
+PKG_WORK_DIR = $(WORK_DIR)/$(PKG_NAME)_$(PKG_VERS)
 PKG_BUILD_12BIT = $(PKG_WORK_DIR)/build12bit
 PKG_BUILD_10BIT = $(PKG_WORK_DIR)/build10bit
 
