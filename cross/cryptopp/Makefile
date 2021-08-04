@@ -27,7 +27,7 @@ ifeq ($(findstring $(ARCH), $(ARM5_ARCHES) $(ARM7_ARCHES)),$(ARCH))
 # makefile for arm archs (except arm64)
 MAKEFILE = GNUmakefile-cross
 else
-MAKEFILE = GNUmakefile
+MAKEFILE = GNUmakefile-cross
 endif
 
 
