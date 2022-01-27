@@ -1,5 +1,5 @@
 PKG_NAME = expat
-PKG_VERS = 2.3.0
+PKG_VERS = 2.4.1
 PKG_EXT = tar.bz2
 PKG_DIST_NAME = $(PKG_NAME)-$(PKG_VERS).$(PKG_EXT)
 PKG_DIST_SITE = https://github.com/libexpat/lib$(PKG_NAME)/releases/download/R_$(subst .,_,$(PKG_VERS))
@@ -15,5 +15,7 @@ GNU_CONFIGURE = 1
 
 # TODO check "getrandom" syscall availability for each arch/DSM versions
 CONFIGURE_ARGS = CFLAGS=-DXML_POOR_ENTROPY
+
+ADDITIONAL_CPPFLAGS = -O
 
 include ../../mk/spksrc.cross-cc.mk

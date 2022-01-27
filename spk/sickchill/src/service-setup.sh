@@ -1,12 +1,10 @@
-PYTHON_DIR="/usr/local/python3"
-PIP=${SYNOPKG_PKGDEST}/env/bin/pip3
-PATH="${SYNOPKG_PKGDEST}/bin:${SYNOPKG_PKGDEST}/env/bin:${PYTHON_DIR}/bin:${PATH}"
-HOME="${SYNOPKG_PKGDEST}/var"
-VIRTUALENV="${PYTHON_DIR}/bin/virtualenv"
+PYTHON_DIR="/var/packages/python310/target/bin"
+PATH="${SYNOPKG_PKGDEST}/env/bin:${SYNOPKG_PKGDEST}/bin:${PYTHON_DIR}:${PATH}"
+HOME="${SYNOPKG_PKGVAR}"
 PYTHON="${SYNOPKG_PKGDEST}/env/bin/python3"
 SC_INSTALL_DIR="${SYNOPKG_PKGDEST}/share/SickChill"
 SC_BINARY="${SC_INSTALL_DIR}/SickChill.py"
-SC_DATA_DIR="${SYNOPKG_PKGDEST}/var/data"
+SC_DATA_DIR="${SYNOPKG_PKGVAR}/data"
 SC_CFG_FILE="${SC_DATA_DIR}/config.ini"
 
 
@@ -22,9 +20,10 @@ set_config() {
             sed -i "/^\s*web_username\s*=/s/\s*=\s*.*/ = ${wizard_username}/" ${SC_CFG_FILE}
             sed -i "/^\s*web_password\s*=/s/\s*=\s*.*/ = ${wizard_password}/" ${SC_CFG_FILE}
         fi
-        sed -i "/^\s*branch\s*=/s/\s*=\s*.*/ = ${SC_CONFIG_GIT_BRANCH}/" ${SC_CFG_FILE}
-        sed -i "/^\s*cur_commit_hash\s*=/s/\s*=\s*.*/ = ${SC_CONFIG_GIT_COMMIT_HASH}/" ${SC_CFG_FILE}
-        sed -i "/^\s*cur_commit_branch\s*=/s/\s*=\s*.*/ = ${SC_CONFIG_GIT_COMMIT_BRANCH}/" ${SC_CFG_FILE}
+        # update git commit to sickchill updater
+        sed -i "/^\s*branch\s*=/s/\s*=\s*.*/ = ${SC_GIT_BRANCH}/" ${SC_CFG_FILE}
+        sed -i "/^\s*cur_commit_hash\s*=/s/\s*=\s*.*/ = ${SC_GIT_COMMIT_HASH}/" ${SC_CFG_FILE}
+        sed -i "/^\s*cur_commit_branch\s*=/s/\s*=\s*.*/ = ${SC_GIT_COMMIT_BRANCH}/" ${SC_CFG_FILE}
     else
         mkdir -p ${SC_DATA_DIR}
         cat << EOF > ${SC_CFG_FILE}
@@ -40,16 +39,35 @@ EOF
 
 service_postinst() {
     # Create a Python virtualenv
-    ${VIRTUALENV} --system-site-packages ${SYNOPKG_PKGDEST}/env >>${INST_LOG}
-
+    install_python_virtualenv
+    
     # Install the wheels
-    ${PIP} install --no-deps --no-index -U --force-reinstall -f ${SYNOPKG_PKGDEST}/share/wheelhouse ${SYNOPKG_PKGDEST}/share/wheelhouse/*.whl >> ${INST_LOG} 2>&1
-
+    install_python_wheels --extra-index-url https://wheel-index.linuxserver.io/ubuntu/
+    
     if [ "${SYNOPKG_PKG_STATUS}" == "INSTALL" ]; then
         set_config
+    fi
+
+    if [ $SYNOPKG_DSM_VERSION_MAJOR -lt 7 ]; then
+        set_unix_permissions "${SYNOPKG_PKGDEST}"
     fi
 }
 
 service_postupgrade() {
     set_config
+    if [ $SYNOPKG_DSM_VERSION_MAJOR -lt 7 ]; then
+        set_unix_permissions "${SYNOPKG_PKGDEST}"
+    fi
+}
+
+service_preupgrade ()
+{
+    # We have to reset /env folder to 3.8 so remove entire folder as it gets rebuilt in postinst and this avoids any conflicts.
+    # Revision 1 was python 3.7. For cleaner update remove share and lib folders for clean install, leave user data /var.
+    if [ "${SYNOPKG_PKG_STATUS}" != "INSTALL" ] && [ "$(echo ${SYNOPKG_OLD_PKGVER} | sed -r 's/^.*-([0-9]+)$/\1/')" -le 1 ]; then
+        echo "Removing old ${SYNOPKG_PKGDEST}/env and /share for new Python 3.8 and old install"
+        rm -rf ${SYNOPKG_PKGDEST}/env
+        rm -rf ${SYNOPKG_PKGDEST}/share
+        rm -rf ${SYNOPKG_PKGDEST}/lib
+    fi
 }

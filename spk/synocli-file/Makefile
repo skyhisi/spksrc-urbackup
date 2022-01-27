@@ -1,21 +1,36 @@
 SPK_NAME = synocli-file
-SPK_VERS = 2.3
-SPK_REV = 10
+SPK_VERS = 2.5
+SPK_REV = 13
 SPK_ICON = src/synocli-file.png
 
-DEPENDS = cross/less cross/tree cross/ncdu cross/jdupes cross/rhash cross/mc cross/nano cross/file
-DEPENDS += cross/detox cross/pcre2
-DEPENDS += cross/zstd cross/lzip cross/plzip
-DEPENDS += cross/fdupes
+# packages depending on cross/zlib must be defined later, see below
+DEPENDS = cross/less cross/tree cross/ncdu cross/jdupes cross/rhash cross/nano cross/file
+DEPENDS += cross/detox
+DEPENDS += cross/lzip cross/plzip
 DEPENDS += cross/mg
-OPTIONAL_DEPENDS = cross/rmlint cross/rnm cross/micro cross/fzf cross/ripgrep cross/fd
+DEPENDS += cross/jupp
+
+OPTIONAL_DEPENDS  = cross/rmlint cross/rnm cross/micro cross/fzf cross/ripgrep cross/fd
+OPTIONAL_DEPENDS += cross/bat cross/exa
+OPTIONAL_DEPENDS += cross/nnn
 
 MAINTAINER = SynoCommunity
 DISPLAY_NAME = SynoCli File Tools
 
 OPTIONAL_DESC =
 
-include ../../mk/spksrc.archs.mk
+include ../../mk/spksrc.common.mk
+
+# build rust tools before packages depending on cross/zlib
+# These tools must use cross/zlib-ng instead of cross/zlib, otherwise will fail to find zlib (x64 only)
+ifneq ($(findstring $(ARCH),$(OLD_PPC_ARCHS) $(ARMv5_ARCHS)),$(ARCH))
+DEPENDS += cross/bat cross/exa
+OPTIONAL_DESC := $(OPTIONAL_DESC)", bat, exa"
+endif
+
+# packages depending on cross/zlib
+DEPENDS += cross/mc cross/pcre2 cross/fdupes cross/zstd
+
 
 # PPC archs except QorIQ
 ifneq ($(findstring $(ARCH),$(OLD_PPC_ARCHS)),$(ARCH))
@@ -23,10 +38,23 @@ DEPENDS += cross/rmlint
 OPTIONAL_DESC := $(OPTIONAL_DESC)", rmlint"
 endif
 
+TC_HAS_STDC11 = 0
+ifeq ($(call version_ge, ${TCVERSION}, 6.0),1)
+TC_HAS_STDC11 = 1
+endif
+ifeq ($(call version_lt, ${TCVERSION}, 3.0),1)
+TC_HAS_STDC11 = 1
+endif
+
 ifneq ($(findstring $(ARCH),$(OLD_PPC_ARCHS) $(ARMv5_ARCHS)),$(ARCH))
+ifeq ($(TC_HAS_STDC11),1)
 # to build rnm, GCC >= 4.8 is required, but not contained in older toolchains.
 DEPENDS += cross/rnm
 OPTIONAL_DESC := $(OPTIONAL_DESC)", rnm"
+# to build nnn -std=c11 is required
+DEPENDS += cross/nnn
+OPTIONAL_DESC := $(OPTIONAL_DESC)", nnn (n³)"
+endif
 endif
 
 # PPC archs are not supported with golang
@@ -37,9 +65,9 @@ endif
 
 ifneq ($(findstring $(ARCH), $(OLD_PPC_ARCHS)),$(ARCH))
 DEPENDS += cross/ripgrep
-OPTIONAL_DESC := $(OPTIONAL_DESC)", rg \(ripgrep\)"
+OPTIONAL_DESC := $(OPTIONAL_DESC)", rg (ripgrep)"
 DEPENDS += cross/fd
-OPTIONAL_DESC := $(OPTIONAL_DESC)", fd \(fd-find\)"
+OPTIONAL_DESC := $(OPTIONAL_DESC)", fd (fd-find)"
 endif
 
 
@@ -47,9 +75,11 @@ endif
 PCRE2_CLI_FULL = 1
 export PCRE2_CLI_FULL
 
-DESCRIPTION = "SynoCli File Tools provides a set of small command-line utilities: less, tree, ncdu, jdupes, fdupes, rhash, mc \(midnight commander\), mg \(emacs-like text editor\), nano, file, detox, pcre2, zstd, lzip, plzip, detox$(OPTIONAL_DESC)."
+DESCRIPTION = "SynoCli File Tools provides a set of small command-line utilities: less, tree, ncdu, jdupes, fdupes, rhash, mc \(midnight commander\), mg \(emacs-like text editor\), nano, jupp \(based on JOE - Joe\'s Own Editor 3.1\), file, detox, pcre2, zstd, lzip, plzip, detox$(OPTIONAL_DESC)."
 STARTABLE = no
-CHANGELOG = "1. Add rg (ripgrep).<br/>2. Add fd (fd-find).<br/>3. Add mg (emacs-like text editor)."
+CHANGELOG = "1. Add jupp editor.<br/>2. Add nnn (n³) file manager."
+
+SERVICE_SETUP = src/service-setup.sh
 
 HOMEPAGE = https://github.com/SynoCommunity/spksrc/wiki/FAQ-SynoCliFile
 LICENSE  = Each tool is licensed under it's respective license.
@@ -73,12 +103,17 @@ SPK_COMMANDS += bin/fzf
 SPK_COMMANDS += bin/rg
 SPK_COMMANDS += bin/fd
 SPK_COMMANDS += bin/mg
+SPK_COMMANDS += bin/bat
+SPK_COMMANDS += bin/exa
+SPK_COMMANDS += bin/jmacs bin/joe bin/jpico bin/jstar bin/jupp bin/rjoe
+SPK_COMMANDS += bin/nnn
 
 SPK_COMMANDS += bin/rhash
 SPK_COMMANDS += bin/ed2k-link
 SPK_COMMANDS += bin/edonr256-hash
 SPK_COMMANDS += bin/edonr512-hash
-SPK_COMMANDS += bin/gost-hash
+SPK_COMMANDS += bin/gost12-256-hash
+SPK_COMMANDS += bin/gost12-512-hash
 SPK_COMMANDS += bin/has160-hash
 SPK_COMMANDS += bin/magnet-link
 SPK_COMMANDS += bin/sfv-hash
