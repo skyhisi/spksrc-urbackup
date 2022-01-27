@@ -9,14 +9,11 @@
 # installer log is not writable, use for reference only.
 INST_LOG="/var/log/packages/${SYNOPKG_PKGNAME}.log"
 
-INST_ETC="/var/packages/${SYNOPKG_PKGNAME}/etc"
-INST_VARIABLES="${INST_ETC}/installer-variables"
-
 # Optional FWPORTS file
 FWPORTS_FILE="/var/packages/${SYNOPKG_PKGNAME}/conf/${SYNOPKG_PKGNAME}.sc"
 
-TMP_DIR="${SYNOPKG_TEMP_UPGRADE_FOLDER}/var"
-
+# Temporary directory when the package is upgrading
+TMP_DIR="${SYNOPKG_TEMP_UPGRADE_FOLDER}"
 
 install_log ()
 {
@@ -49,6 +46,12 @@ call_func ()
     fi
 }
 
+# Source installer variables and functions
+INST_FUNCTIONS=`dirname $0`"/functions"
+if [ -r "${INST_FUNCTIONS}" ]; then
+    . "${INST_FUNCTIONS}"
+fi
+
 
 # Source package specific variables and functions
 SVC_SETUP=`dirname $0`"/service-setup"
@@ -56,52 +59,34 @@ if [ -r "${SVC_SETUP}" ]; then
     . "${SVC_SETUP}"
 fi
 
+
 # Reload wizard variables stored by postinst
-if [ -r "${INST_VARIABLES}" ]; then
-    . "${INST_VARIABLES}"
-fi
+call_func "reload_inst_variables"
 
-# Expect user to be set from package specific variables
-if [ -n "${USER}" -a -z "${USER_DESC}" ]; then
-    USER_DESC="User running $SYNOPKG_PKGNAME"
-fi
-
-# Default description if group name provided by UI
-if [ -n "${GROUP}" -a -z "${GROUP_DESC}" ]; then
-    GROUP_DESC="SynoCommunity Package Group"
-fi
-
-# Extract share volume and share name from download location if provided
-if [ -n "${SHARE_PATH}" ]; then
-    SHARE_VOLUME=$(echo "${SHARE_PATH}" | awk -F/ '{print "/"$2}')
-    SHARE_NAME=$(echo "${SHARE_PATH}" | awk -F/ '{print $3}')
-fi
-
-# Tools shortcuts
-MV="/bin/mv -f"
-RM="/bin/rm -rf"
-CP="/bin/cp -rfp"
-MKDIR="/bin/mkdir -p"
-LN="/bin/ln -nsf"
-TEE="/usr/bin/tee -a"
+# init variables either reloaded, from package or from wizard
+call_func "initialize_variables"
 
 ### Functions library
 
-log_step ()
-{
-    install_log "===> Step $1. USER=$USER GROUP=$GROUP SHARE_PATH=${SHARE_PATH}"
-}
+#
+# New DSM7 folders: copy no-verwrite + remove source
+# (@appdata) /var/packages/<package>/target/var -> /var/packages/<package>/target/../var
+#
+syno_sync_var_folder () {
+    if [ -d ${SYNOPKG_PKGDEST}/var -a "$(ls -A ${SYNOPKG_PKGDEST}/var 2>/dev/null)" ]; then
+        # Copy and delete all files except don't overwrite any existing
+        echo "$RSYNC --ignore-existing --remove-source-files ${SYNOPKG_PKGDEST}/var/ ${SYNOPKG_PKGVAR}"
+        $RSYNC --ignore-existing --remove-source-files ${SYNOPKG_PKGDEST}/var/ ${SYNOPKG_PKGVAR}
 
-save_wizard_variables ()
-{
-    if [ -e "${INST_VARIABLES}" ]; then
-        $RM "${INST_VARIABLES}"
-    fi
-    if [ -n "${GROUP}" ]; then
-        echo "GROUP=${GROUP}" >> ${INST_VARIABLES}
-    fi
-    if [ -n "${SHARE_PATH}" ]; then
-        echo "SHARE_PATH=${SHARE_PATH}" >> ${INST_VARIABLES}
+        # Rename any remaining (thus pre-existing) files with .new suffix
+        find ${SYNOPKG_PKGDEST}/var -type f -exec sh -c 'x="{}"; mv "$x" "${x}.new"' \;
+
+        # Force-copy and delete all .new files
+        echo "$RSYNC --remove-source-files ${SYNOPKG_PKGDEST}/var/ ${SYNOPKG_PKGVAR}"
+        $RSYNC --remove-source-files ${SYNOPKG_PKGDEST}/var/ ${SYNOPKG_PKGVAR}
+
+        # Remove remaining directory
+        $RM ${SYNOPKG_PKGDEST}/var
     fi
 }
 
@@ -162,13 +147,11 @@ preinst ()
 postinst ()
 {
     log_step "postinst"
-    save_wizard_variables 2>&1 | install_log
+    call_func "save_wizard_variables" install_log
 
     # copy target/var data to permanent storage
     # and don't override old configurations
-    if [ -d ${SYNOPKG_PKGDEST}/var ] && [ "$(find ${SYNOPKG_PKGVAR} -mindepth 1 -not -name '*.log' -print)" = "" ]; then
-        $CP ${SYNOPKG_PKGDEST}/var/. ${SYNOPKG_PKGVAR} 2>&1 | install_log
-    fi    
+    call_func "syno_sync_var_folder" install_log
 
     call_func "service_postinst" install_log
 
@@ -193,17 +176,17 @@ postuninst ()
     call_func "service_postuninst" install_log
 
     if [ "$wizard_delete_data" = "true" ]; then
-
+        echo "Removing files..." | install_log
         if [ "$(ls -A ${SYNOPKG_PKGHOME})" != "" ]; then
-            rm -rf ${SYNOPKG_PKGHOME}/* 2>&1 | install_log
+            find ${SYNOPKG_PKGHOME} -mindepth 1 -delete -print | install_log
         fi
 
         if [ "$(ls -A ${SYNOPKG_PKGVAR})" != "" ]; then
-            rm -rf ${SYNOPKG_PKGVAR}/* 2>&1 | install_log
+            find ${SYNOPKG_PKGVAR} -mindepth 1 -delete -print | install_log
         fi
 
         if [ "$(ls -A /var/packages/${SYNOPKG_PKGNAME}/etc)" != "" ]; then
-            rm -rf /var/packages/${SYNOPKG_PKGNAME}/etc/* 2>&1 | install_log
+            find /var/packages/${SYNOPKG_PKGNAME}/etc -mindepth 1 -delete -print | install_log
         fi
     fi
     exit 0
@@ -215,10 +198,12 @@ preupgrade ()
     call_func "validate_preupgrade"
 
     # dsm6 -> dsm7
-    # Migrate data to permanent storage
-    if [ -d ${SYNOPKG_PKGDEST}/var -a ! "$(ls -A ${SYNOPKG_PKGVAR})" ]; then
-        # only migrate when destination is empty
-        $CP ${SYNOPKG_PKGDEST}/var/. ${SYNOPKG_PKGVAR} 2>&1 | install_log
+    # Copy first to temporary directory if upgrading from DSM6 -> DSM7
+    # Then migrate data once to permanent storage at postupgrade
+    if [ -d ${SYNOPKG_PKGDEST}/var -a "$(ls -A ${SYNOPKG_PKGDEST}/var 2>/dev/null)" ]; then
+        echo "$RSYNC ${SYNOPKG_PKGDEST}/var/ ${TMP_DIR}" | install_log
+        $RSYNC ${SYNOPKG_PKGDEST}/var/ ${TMP_DIR} 2>&1 | install_log && chk=$?
+        [ "${chk}" = "0" ] && rm -fr ${SYNOPKG_PKGDEST}/var || true
     fi
 
     call_func "service_preupgrade" install_log
@@ -231,7 +216,17 @@ postupgrade ()
     log_step "postupgrade"
 
     call_func "service_restore" install_log
+
+    # dsm6 -> dsm7
+    # Migrate data once to permanent storage at postupgrade
+    if [ -d ${TMP_DIR} -a "$(ls -A ${TMP_DIR} 2>/dev/null)" ]; then
+        echo "$RSYNC ${TMP_DIR}/ ${SYNOPKG_PKGVAR}" | install_log
+        $RSYNC ${TMP_DIR}/ ${SYNOPKG_PKGVAR} 2>&1 | install_log
+    fi
+
+    # dsm7: Now sync in any new files to permanent storage
+    call_func "syno_sync_var_folder" install_log
     call_func "service_postupgrade" install_log
+
     exit 0
 }
-

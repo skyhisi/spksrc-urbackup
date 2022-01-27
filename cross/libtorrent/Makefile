@@ -10,7 +10,7 @@ BUILD_DEPENDS = cross/python2
 DEPENDS = cross/boost cross/geoip cross/libiconv cross/openssl
 
 # cross/boost: archs lacking C++11 compiler (88f6281 and ppc archs except QorIQ)
-UNSUPPORTED_ARCHS = $(ARMv5_ARCHS) $(OLD_PCC_ARCHS)
+UNSUPPORTED_ARCHS = $(ARMv5_ARCHS) $(OLD_PPC_ARCHS)
 # libtorrent:
 UNSUPPORTED_ARCHS += $(ARMv7L_ARCHS)
 
@@ -23,6 +23,8 @@ CONFIGURE_TARGET = configure_target
 COMPILE_TARGET = compile_target build_python_wheel
 INSTALL_TARGET = install_destdir_target install_python_wheel
 
+include ../../mk/spksrc.common.mk
+
 GNU_CONFIGURE = 1
 -include $(WORK_DIR)/python-cc.mk
 CONFIGURE_ARGS  = --enable-python-binding --with-libiconv
@@ -34,6 +36,10 @@ CONFIGURE_ARGS += PYTHON_CPPFLAGS=-I$(STAGING_INSTALL_PREFIX)/$(PYTHON_INC_DIR)
 ADDITIONAL_CFLAGS = -I$(STAGING_INSTALL_PREFIX)/$(PYTHON_INC_DIR)
 ADDITIONAL_CXXFLAGS = -I$(STAGING_INSTALL_PREFIX)/$(PYTHON_INC_DIR)
 ADDITIONAL_LDFLAGS = "-Wl,-Bsymbolic"
+
+# Only required for DSM <= 6.* using gcc-4.9 along with comcerto2k-7.0
+# Leaving enabled by default for all as no negative impact
+ADDITIONAL_CXXFLAGS += -std=c++11
 
 BOOST_LIBRARIES += system python chrono random
 ENV += BOOST_LIBRARIES="$(BOOST_LIBRARIES)"

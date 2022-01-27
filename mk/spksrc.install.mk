@@ -2,7 +2,7 @@
 #   Install the freshly compiled software, and correct the pkg_config files.
 #   This installation will be used to configure and compile other pieces of softwares. This is
 #   not the target directory, theses files are copied in the stating directory.
-# Target are executed in the following order:
+# Targets are executed in the following order:
 #  install_msg_target
 #  $(PRE_INSTALL_PLIST)
 #  pre_install_target              (override with PRE_INSTALL_TARGET)
@@ -63,8 +63,6 @@ post_install_target: $(INSTALL_TARGET)
 $(INSTALL_PLIST):
 	find $(INSTALL_DIR)/$(INSTALL_PREFIX)/ \! -type d -printf '%P\n' | sort | \
 	  diff $(PRE_INSTALL_PLIST) -  | grep '>' | cut -d' ' -f2- > $@
-	# Generate $(PKG_NAME).plist.auto for newly added files (diff against .tmp)
-	comm -3 $(PRE_INSTALL_PLIST) $(INSTALL_PLIST) > $(INSTALL_PLIST).auto
 
 install_correct_lib_files: $(INSTALL_PLIST)
 	@for pc_file in `grep -e "^lib/pkgconfig/.*\.pc$$" $(INSTALL_PLIST)` ; \

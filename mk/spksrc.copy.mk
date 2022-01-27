@@ -1,7 +1,7 @@
 ### Copy rules
 #   Copy files from the installation directory to the staging directory,
 #   ready to be packed.
-# Target are executed in the following order:
+# Targets are executed in the following order:
 #  copy_msg_target
 #  pre_copy_target   (override with PRE_COPY_TARGET)
 #  copy_target       (override with COPY_TARGET)
@@ -68,15 +68,11 @@ endif
 
 $(INSTALL_PLIST):
 	@(\
-	  for depend in $(DEPENDS) ; \
-	  do                          \
+	  for depend in $(DEPENDS) ; do \
 	    $(MAKE) WORK_DIR=$(WORK_DIR) --no-print-directory -C ../../$${depend} cat_PLIST ; \
 	  done ; \
-	  if [ -f PLIST ] ; \
-	  then \
+	  if [ -s PLIST ] ; then \
 	    cat PLIST ; \
-	  else \
-	    $(MSG) "No PLIST for $(NAME)" >&2; \
 	  fi \
 	) | $(PLIST_TRANSFORM) | sort -u > $@
 
