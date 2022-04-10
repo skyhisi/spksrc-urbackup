@@ -113,6 +113,13 @@ ifneq ($(strip $(SPK_ICON)),)
 include ../../mk/spksrc.icon.mk
 endif
 
+ifeq ($(strip $(MAINTAINER)),)
+$(error Add MAINTAINER for '$(SPK_NAME)' in spk Makefile or set default MAINTAINER in local.mk.)
+endif
+
+get_github_maintainer_url = $(shell wget --quiet --spider https://github.com/$(1) && echo "https://github.com/$(1)" || echo "")
+get_github_maintainer_name = $(shell curl -s -H application/vnd.github.v3+json https://api.github.com/users/$(1) | jq -r '.name' | sed -e 's|null||g' | sed -e 's|^$$|$(1)|g' )
+
 $(WORK_DIR)/INFO:
 	$(create_target_dir)
 	@$(MSG) "Creating INFO file for $(SPK_NAME)"
@@ -127,15 +134,14 @@ $(WORK_DIR)/INFO:
             /bin/echo -n "$(DESCRIPTION_$(shell echo $(LANGUAGE) | tr [:lower:] [:upper:]))"  | sed -e 's/"/\\\\\\"/g' && \
             /bin/echo -n "\\\"\\\n")) | sed -e 's/ description_/description_/g' >> $@
 	@echo arch=\"$(SPK_ARCH)\" >> $@
-ifneq ($(strip $(MAINTAINER)),)
-	@echo maintainer=\"$(MAINTAINER)\" >> $@
+	@echo maintainer=\"$(call get_github_maintainer_name,$(MAINTAINER))\" >> $@
+ifeq ($(strip $(MAINTAINER_URL)),)
+	@echo maintainer_url=\"$(call get_github_maintainer_url,$(MAINTAINER))\" >> $@
 else
-	$(error Set MAINTAINER in local.mk)
-endif
 	@echo maintainer_url=\"$(MAINTAINER_URL)\" >> $@
+endif
 	@echo distributor=\"$(DISTRIBUTOR)\" >> $@
 	@echo distributor_url=\"$(DISTRIBUTOR_URL)\" >> $@
-
 ifneq ($(strip $(OS_MIN_VER)),)
 	@echo os_min_ver=\"$(OS_MIN_VER)\" >> $@
 else
@@ -177,9 +183,6 @@ ifneq ($(strip $(START_DEP_SERVICES)),)
 endif
 ifneq ($(strip $(INSTUNINST_RESTART_SERVICES)),)
 	@echo instuninst_restart_services=\"$(INSTUNINST_RESTART_SERVICES)\" >> $@
-endif
-ifeq ($(RELOAD_UI),yes)
-	@echo reloadui=\"$(RELOAD_UI)\" >> $@
 endif
 
 # for non startable (i.e. non service, cli tools only)
@@ -456,6 +459,7 @@ endif
 
 .PHONY: publish-all-$(ACTION) all-$(ACTION) pre-build-native
 
+pre-build-native: SHELL:=/bin/bash
 pre-build-native:
 	@$(MSG) Pre-build native dependencies for parallel build
 	@for depend in $$($(MAKE) dependency-list) ; \
@@ -464,6 +468,7 @@ pre-build-native:
 	    $(MSG) "Pre-processing $${depend}" ; \
 	    $(MSG) "  env $(ENV) $(MAKE) -C ../../$$depend" ; \
 	    env $(ENV) $(MAKE) -C ../../$$depend 2>&1 | tee build-$${depend%/*}-$${depend#*/}.log ; \
+	    [ $${PIPESTATUS[0]} -eq 0 ] || false ; \
 	  fi ; \
 	done
 ifneq ($(filter all,$(subst -, ,$(MAKECMDGOALS))),)
@@ -531,19 +536,25 @@ arch-%: | pre-build-native
 	@$(MSG) BUILDING package for arch $(or $(filter $(addprefix %, $(DEFAULT_TC)), $(filter %$(word 2,$(subst -, ,$*)), $(filter $(firstword $(subst -, ,$*))%, $(AVAILABLE_TOOLCHAINS)))), $*)
 	$(MAKE) $(addprefix build-arch-, $(or $(filter $(addprefix %, $(DEFAULT_TC)), $(filter %$(word 2,$(subst -, ,$*)), $(filter $(firstword $(subst -, ,$*))%, $(AVAILABLE_TOOLCHAINS)))),$*))
 
+build-arch-%: SHELL:=/bin/bash
 build-arch-%: spk_msg
 	@$(MSG) BUILDING package for arch $*
 ifneq ($(filter 1 on ON,$(PSTAT)),)
 	@$(MSG) MAKELEVEL: $(MAKELEVEL), PARALLEL_MAKE: $(PARALLEL_MAKE), ARCH: $*, SPK: $(SPK_NAME) [BEGIN] >> $(PSTAT_LOG)
 endif
-	-@MAKEFLAGS= $(PSTAT_TIME) $(MAKE) ARCH=$(firstword $(subst -, ,$*)) TCVERSION=$(lastword $(subst -, ,$*)) 2>&1 | tee build-$*.log
+	@MAKEFLAGS= $(PSTAT_TIME) $(MAKE) ARCH=$(firstword $(subst -, ,$*)) TCVERSION=$(lastword $(subst -, ,$*)) 2>&1 | tee build-$*.log ; \
+	  [ $${PIPESTATUS[0]} -eq 0 ] || false
 ifneq ($(filter 1 on ON,$(PSTAT)),)
 	@$(MSG) MAKELEVEL: $(MAKELEVEL), PARALLEL_MAKE: $(PARALLEL_MAKE), ARCH: $*, SPK: $(SPK_NAME) [END] >> $(PSTAT_LOG)
 endif
 
+
+publish-arch-%: SHELL:=/bin/bash
 publish-arch-%: spk_msg
+	# handle and allow parallel build for:  arch-<arch> | make arch-<arch>-X.Y
 	@$(MSG) BUILDING and PUBLISHING package for arch $*
-	-@MAKEFLAGS= $(PSTAT_TIME) $(MAKE) ARCH=$(basename $(subst -,.,$(basename $(subst .,,$*)))) TCVERSION=$(if $(findstring $*,$(basename $(subst -,.,$(basename $(subst .,,$*))))),$(DEFAULT_TC),$(notdir $(subst -,/,$*))) publish 2>&1 | tee build-$*.log
+	@MAKEFLAGS= $(PSTAT_TIME) $(MAKE) ARCH=$(basename $(subst -,.,$(basename $(subst .,,$*)))) TCVERSION=$(if $(findstring $*,$(basename $(subst -,.,$(basename $(subst .,,$*))))),$(DEFAULT_TC),$(notdir $(subst -,/,$*))) publish 2>&1 | tee build-$*.log ; \
+	  [ $${PIPESTATUS[0]} -eq 0 ] || false
 
 ####
 
