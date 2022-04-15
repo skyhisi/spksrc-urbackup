@@ -1,5 +1,5 @@
 PKG_NAME = cryptopp
-PKG_VERS = 8.2.0
+PKG_VERS = 8.6.0
 PKG_EXT = tar.gz
 DIST_BASE_NAME=CRYPTOPP_$(subst .,_,$(PKG_VERS))
 PKG_DIST_NAME = $(DIST_BASE_NAME).$(PKG_EXT)
@@ -9,7 +9,7 @@ PKG_DIR = $(PKG_NAME)-$(DIST_BASE_NAME)
 # PPC_ARCHES except qoirq
 # ppc_power9.cpp: In function 'bool CryptoPP::CPU_ProbeDARN()':
 # ppc_power9.cpp:104: error: 'NULL' was not declared in this scope
-UNSUPPORTED_ARCHS = powerpc ppc824x ppc853x ppc854
+UNSUPPORTED_ARCHS = $(PPC_ARCHS)
 
 HOMEPAGE = https://cryptopp.com/
 COMMENT  = Crypto++ Library is a free C++ class library of cryptographic schemes.
@@ -19,7 +19,7 @@ CONFIGURE_TARGET = nop
 COMPILE_TARGET = cryptopp_compile
 INSTALL_TARGET = cryptopp_install
 
-ADDITIONAL_CXXFLAGS = -DNDEBUG -g2 -O3 -fPIC -pipe
+ADDITIONAL_CXXFLAGS = -Os -fPIC -pipe
 
 include ../../mk/spksrc.cross-cc.mk
 
@@ -27,7 +27,7 @@ ifeq ($(findstring $(ARCH), $(ARM5_ARCHES) $(ARM7_ARCHES)),$(ARCH))
 # makefile for arm archs (except arm64)
 MAKEFILE = GNUmakefile-cross
 else
-MAKEFILE = GNUmakefile-cross
+MAKEFILE = GNUmakefile
 endif
 
 
