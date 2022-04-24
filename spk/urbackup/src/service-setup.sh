@@ -21,6 +21,7 @@ service_postinst ()
     echo "${SYNOPKG_PKGHOME}" > ${SYNOPKG_PKGVAR}/urbackup/backupfolder 
     #synogroup --add "administrators" "sc-urbackup" > /dev/null
     #addgroup "sc-urbackup" "administrators"
+    sed -i 's/package/root/g' /var/packages/urbackup/conf/privilege
 }
 
 service_prestart ()
