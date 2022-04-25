@@ -7,57 +7,57 @@ stages:
     strategy:
       matrix:
         qoriq:
-          architecure: arch-qoriq-6.2.2
+          architecure: arch-qoriq-7.0
         kvmx64:
-          architecure: arch-kvmx64-6.2.2
+          architecure: arch-kvmx64-7.0
         armv7:
-          architecure: arch-armv7-6.2.2
+          architecure: arch-armv7-7.0
         denverton:
-          architecure: arch-denverton-6.2.2
+          architecure: arch-denverton-7.0
         x64:
-          architecure: arch-x64-6.2.2
+          architecure: arch-x64-7.0
         broadwell:
-          architecure: arch-broadwell-6.2.2
+          architecure: arch-broadwell-7.0
         aarch64:
-          architecure: arch-aarch64-6.2.2
+          architecure: arch-aarch64-7.0
         avoton:
-          architecure: arch-avoton-6.2.2
+          architecure: arch-avoton-7.0
         armada38x:
-          architecure: arch-armada38x-6.2.2
+          architecure: arch-armada38x-7.0
         x86:
-          architecure: arch-x86-6.2.2
+          architecure: arch-x86-7.0
         88f6281:
-          architecure: arch-88f6281-6.2.2
+          architecure: arch-88f6281-7.0
         grantley:
-          architecure: arch-grantley-6.2.2
+          architecure: arch-grantley-7.0
         braswell:
-          architecure: arch-braswell-6.2.2
+          architecure: arch-braswell-7.0
         comcerto2k:
-          architecure: arch-comcerto2k-6.2.2
+          architecure: arch-comcerto2k-7.0
         armadaxp:
-          architecure: arch-armadaxp-6.2.2
+          architecure: arch-armadaxp-7.0
         hi3535:
-          architecure: arch-hi3535-6.2.2
+          architecure: arch-hi3535-7.0
         dockerx64:
-          architecure: arch-dockerx64-6.2.2
+          architecure: arch-dockerx64-7.0
         cedarview:
-          architecure: arch-cedarview-6.2.2
+          architecure: arch-cedarview-7.0
         armada375:
-          architecure: arch-armada375-6.2.2
+          architecure: arch-armada375-7.0
         rtd1296:
-          architecure: arch-rtd1296-6.2.2
+          architecure: arch-rtd1296-7.0
         monaco:
-          architecure: arch-monaco-6.2.2
+          architecure: arch-monaco-7.0
         apollolake:
-          architecure: arch-apollolake-6.2.2
+          architecure: arch-apollolake-7.0
         bromolow:
-          architecure: arch-bromolow-6.2.2
+          architecure: arch-bromolow-7.0
         alpine:
-          architecure: arch-alpine-6.2.2
+          architecure: arch-alpine-7.0
         armada370:
-          architecure: arch-armada370-6.2.2
+          architecure: arch-armada370-7.0
         evansport:
-          architecure: arch-evansport-6.2.2
+          architecure: arch-evansport-7.0
       maxParallel: 10
     pool:
       vmImage: 'ubuntu-latest'
@@ -90,7 +90,7 @@ stages:
         action: edit
         target: '$(Build.SourceVersion)'
         tagSource: userSpecifiedTag
-        tag: '2.4.13'
+        tag: '2.4.15'
         assets: '$(Build.Repository.LocalPath)/packages/*.spk'
         assetUploadMode: replace
         addChangeLog: false
