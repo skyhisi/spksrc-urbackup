@@ -1,0 +1,97 @@
+stages:
+- stage: __default
+  jobs:
+  - job: Linux
+    displayName: ubuntu
+    timeoutInMinutes: 0
+    strategy:
+      matrix:
+        qoriq:
+          architecure: arch-qoriq-6.2.2
+        kvmx64:
+          architecure: arch-kvmx64-6.2.2
+        armv7:
+          architecure: arch-armv7-6.2.2
+        denverton:
+          architecure: arch-denverton-6.2.2
+        x64:
+          architecure: arch-x64-6.2.2
+        broadwell:
+          architecure: arch-broadwell-6.2.2
+        aarch64:
+          architecure: arch-aarch64-6.2.2
+        avoton:
+          architecure: arch-avoton-6.2.2
+        armada38x:
+          architecure: arch-armada38x-6.2.2
+        x86:
+          architecure: arch-x86-6.2.2
+        88f6281:
+          architecure: arch-88f6281-6.2.2
+        grantley:
+          architecure: arch-grantley-6.2.2
+        braswell:
+          architecure: arch-braswell-6.2.2
+        comcerto2k:
+          architecure: arch-comcerto2k-6.2.2
+        armadaxp:
+          architecure: arch-armadaxp-6.2.2
+        hi3535:
+          architecure: arch-hi3535-6.2.2
+        dockerx64:
+          architecure: arch-dockerx64-6.2.2
+        cedarview:
+          architecure: arch-cedarview-6.2.2
+        armada375:
+          architecure: arch-armada375-6.2.2
+        rtd1296:
+          architecure: arch-rtd1296-6.2.2
+        monaco:
+          architecure: arch-monaco-6.2.2
+        apollolake:
+          architecure: arch-apollolake-6.2.2
+        bromolow:
+          architecure: arch-bromolow-6.2.2
+        alpine:
+          architecure: arch-alpine-6.2.2
+        armada370:
+          architecure: arch-armada370-6.2.2
+        evansport:
+          architecure: arch-evansport-6.2.2
+      maxParallel: 10
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: CmdLine@2
+      displayName: 'apt add architecture'
+      inputs:
+        script: sudo dpkg --add-architecture i386 && sudo apt-get update
+    - task: CmdLine@2
+      displayName: 'apt install'
+      inputs:
+        script: sudo apt install autogen automake bc bison build-essential check cmake curl cython debootstrap expect flex g++-multilib gettext git gperf imagemagick intltool libbz2-dev libc6-i386 libcppunit-dev libffi-dev libgc-dev libgmp3-dev libltdl-dev libmount-dev libncurses-dev libpcre3-dev libssl-dev libtool libunistring-dev lzip mercurial ncurses-dev php pkg-config python3 python3-distutils scons subversion swig unzip xmlto zlib1g-dev
+    - task: CmdLine@2
+      displayName: 'Install Python dependencies'
+      inputs:
+        script: python -m pip install --upgrade pip && pip install -U setuptools pip wheel httpie
+    - task: CmdLine@2
+      displayName: 'make setup'
+      inputs:
+        script: make setup
+    - task: CmdLine@2
+      displayName: 'make $(architecure)'
+      inputs:
+        script: make $(architecure)
+        workingDirectory: spk/urbackup
+    - task: GitHubRelease@1
+      inputs:
+        gitHubConnection: 'github'
+        repositoryName: 'josef109/spksrc'
+        action: edit
+        target: '$(Build.SourceVersion)'
+        tagSource: userSpecifiedTag
+        tag: '2.4.13'
+        assets: '$(Build.Repository.LocalPath)/packages/*.spk'
+        assetUploadMode: replace
+        addChangeLog: false
+
