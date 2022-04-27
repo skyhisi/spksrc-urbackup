@@ -4,7 +4,6 @@ if [ -z "${SYNOPKG_PKGHOME}" ]; then
     SYNOPKG_PKGHOME="${SYNOPKG_PKGVAR}"
 fi
 
-#export HOME="${SYNOPKG_PKGHOME}"
 HOME_DIR="${SYNOPKG_PKGVAR}"
 
 SERVICE_COMMAND="${SYNOPKG_PKGDEST}/bin/urbackupsrv run -d -v error -u sc-urbackup --pidfile ${PID_FILE} --logfile ${LOG_FILE}"
