@@ -2,7 +2,7 @@
 # https://help.synology.com/developer-guide/integrate_dsm/fhs.html
 if [ -z "${SYNOPKG_PKGHOME}" ]; then
     SYNOPKG_PKGHOME="${SYNOPKG_PKGVAR}"
-fi
+fi 
 
 HOME_DIR="${SYNOPKG_PKGVAR}"
 
