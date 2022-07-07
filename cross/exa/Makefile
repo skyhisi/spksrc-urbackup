@@ -8,11 +8,14 @@ PKG_DIR = $(PKG_NAME)-$(PKG_VERS)
 
 DEPENDS = cross/zlib-ng
 
-# git2 package not supported
-UNSUPPORTED_ARCHS = $(OLD_PPC_ARCHS) $(ARMv5_ARCHS)
+# unsupported by cross/zlib-ng
+UNSUPPORTED_ARCHS = $(OLD_PPC_ARCHS)
+# rust issue with target 'armv5te-unknown-linux-gnueabi'
+# https://github.com/rust-lang/compiler-builtins/issues/420
+UNSUPPORTED_ARCHS += $(ARMv5_ARCHS)
 
 HOMEPAGE = https://the.exa.website/
-COMMENT  = A modern replacement for ‘ls’.
+COMMENT  = A modern replacement for 'ls'.
 LICENSE  = MIT
 
 include ../../mk/spksrc.cross-rust.mk
