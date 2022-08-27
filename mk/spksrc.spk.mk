@@ -1,16 +1,29 @@
 ### Rules to create the spk package
 #   Most of the rules are imported from spksrc.*.mk files
 #
-# Variables used in this file:
-#  NAME:              The internal name of the package.
-#                     Note that all synocoummunity packages use lowercase names.
-#                     This enables to have concurrent packages with synology.com, that use
-#                     package names starting with upper case letters.
-#                     (e.g. Mono => synology.com, mono => synocommunity.com)
-#  SPK_FILE_NAME:     The full spk name with folder, package name, arch, tc- and package version.
-#  SPK_CONTENT:       List of files and folders that are added to package.tgz within the spk file.
-#  DSM_SCRIPT_FILES:  List of script files that are in the scripts folder within the spk file.
-#  CONF_DIR:          To provide a package specific conf folder for e.g. privilege file
+# Variables:
+#  ARCH                         A dedicated arch, a generic arch or empty for arch independent packages
+#  SPK_NAME                     Package name
+#  MAINTAINER                   Package maintainer (mandatory)
+#  MAINTAINER_URL               URL of package maintainer (optional when MAINTAINER is a valid github user)
+#  SPK_NAME_ARCH                (optional) arch specific spk file name (default: $(ARCH))
+#  SPK_PACKAGE_ARCHS            (optional) list of archs in the spk file (default: $(ARCH) or list of archs when generic arch)
+#  UNSUPPORTED_ARCHS            (optional) Unsupported archs are removed from gemeric arch list (ignored when SPK_PACKAGE_ARCHS is used)
+#  REMOVE_FROM_GENERIC_ARCHS    (optional) A list of archs to be excluded from generic archs (ignored when SPK_PACKAGE_ARCHS is used)
+#  SSS_SCRIPT                   (optional) Use service start stop script from given file
+#  INSTALLER_SCRIPT             (optional) Use installer script from given file
+#  CONF_DIR                     (optional) To provide a package specific conf folder with files (e.g. privilege file)
+#  LICENSE_FILE                 (optional) Add licence from given file
+# 
+# Internal variables used in this file:
+#  NAME                         The internal name of the package.
+#                               Note that all synocoummunity packages use lowercase names.
+#                               This enables to have concurrent packages with synology.com, that use
+#                               package names starting with upper case letters.
+#                               (e.g. Mono => synology.com, mono => synocommunity.com)
+#  SPK_FILE_NAME                The full spk name with folder, package name, arch, tc- and package version.
+#  SPK_CONTENT                  List of files and folders that are added to package.tgz within the spk file.
+#  DSM_SCRIPT_FILES             List of script files that are in the scripts folder within the spk file.
 #
 
 # Common makefiles
@@ -20,35 +33,55 @@ include ../../mk/spksrc.directories.mk
 # Configure the included makefiles
 NAME = $(SPK_NAME)
 
-# Configure file descriptor lock timeout
-FLOCK_TIMEOUT = 300
-
 ifneq ($(ARCH),)
-SPK_ARCH = $(TC_ARCH)
+# arch specific packages
+ifneq ($(SPK_PACKAGE_ARCHS),)
+SPK_ARCH = $(SPK_PACKAGE_ARCHS)
+else
+ifeq ($(findstring $(ARCH),$(GENERIC_ARCHS)),$(ARCH))
+SPK_ARCH = $(filter-out $(UNSUPPORTED_ARCHS) $(REMOVE_FROM_GENERIC_ARCHS),$(TC_ARCH))
+else
+SPK_ARCH = $(filter-out $(UNSUPPORTED_ARCHS),$(TC_ARCH))
+endif
+endif
+ifeq ($(SPK_NAME_ARCH),)
 SPK_NAME_ARCH = $(ARCH)
+endif
 SPK_TCVERS = $(TCVERSION)
 ARCH_SUFFIX = -$(ARCH)-$(TCVERSION)
 TC = syno$(ARCH_SUFFIX)
 else
+# different noarch packages
 SPK_ARCH = noarch
 SPK_NAME_ARCH = noarch
-ifeq ($(call version_ge, ${TCVERSION}, 7.0),1)
+ifeq ($(strip $(TCVERSION)),)
+# default: 3.1 .. 5.2
+TCVERSION = 5.2
+endif
+ifeq ($(call version_ge, $(TCVERSION), 7.0),1)
 SPK_TCVERS = dsm7
-OS_MIN_VER = 7.0-40000
-else ifeq ($(call version_ge, ${TCVERSION}, 6.0),1)
+TC_OS_MIN_VER = 7.0-40000
+else ifeq ($(call version_ge, $(TCVERSION), 6.1),1)
 SPK_TCVERS = dsm6
-OS_MIN_VER = 6.0-7321
-else
-ifeq ($(call version_ge, ${TCVERSION}, 6.0),1)
-SPK_TCVERS = dsm6
-OS_MIN_VER = 6.0-7321
+TC_OS_MIN_VER = 6.1-15047
+else ifeq ($(call version_lt, $(TCVERSION), 3.0),1)
+SPK_TCVERS = srm
+TC_OS_MIN_VER = 1.1-6931
 else
 SPK_TCVERS = all
-OS_MIN_VER = 3.1-1594
-endif
+TC_OS_MIN_VER = 3.1-1594
 endif
 ARCH_SUFFIX = -$(SPK_TCVERS)
-FIRMWARE = $(OS_MIN_VER)
+endif
+
+ifeq ($(call version_lt, ${TC_OS_MIN_VER}, 6.1)$(call version_ge, ${TC_OS_MIN_VER}, 3.0),11)
+OS_MIN_VER = $(TC_OS_MIN_VER)
+else
+ifneq ($(strip $(OS_MIN_VER)),)
+$(warning WARNING: OS_MIN_VER is forced to $(OS_MIN_VER) (default by toolchain is $(TC_OS_MIN_VER)))
+else
+OS_MIN_VER = $(TC_OS_MIN_VER)
+endif
 endif
 
 SPK_FILE_NAME = $(PACKAGES_DIR)/$(SPK_NAME)_$(SPK_NAME_ARCH)-$(SPK_TCVERS)_$(SPK_VERS)-$(SPK_REV).spk
@@ -95,15 +128,13 @@ $(DSM_SCRIPTS_DIR)/installer: $(INSTALLER_SCRIPT)
 	@$(dsm_script_copy)
 endif
 
-DSM_SCRIPT_FILES += $(notdir $(basename $(ADDITIONAL_SCRIPTS)))
-
 SPK_CONTENT = package.tgz INFO scripts
 
 # conf
 DSM_CONF_DIR = $(WORK_DIR)/conf
 
 ifneq ($(CONF_DIR),)
-SPK_CONF_DIR=$(CONF_DIR)
+SPK_CONF_DIR = $(CONF_DIR)
 endif
 
 # Generic service scripts
@@ -124,6 +155,11 @@ get_github_maintainer_name = $(shell curl -s -H application/vnd.github.v3+json h
 $(WORK_DIR)/INFO:
 	$(create_target_dir)
 	@$(MSG) "Creating INFO file for $(SPK_NAME)"
+	@if [ -z "$(SPK_ARCH)" ]; then \
+	   echo "ERROR: Arch '$(ARCH)' is not a supported architecture" ; \
+	   echo " - There is no remaining arch in '$(TC_ARCH)' for unsupported archs '$(UNSUPPORTED_ARCHS)'"; \
+	   exit 1; \
+	fi
 	@echo package=\"$(SPK_NAME)\" > $@
 	@echo version=\"$(SPK_VERS)-$(SPK_REV)\" >> $@
 	@/bin/echo -n "description=\"" >> $@
@@ -143,20 +179,13 @@ else
 endif
 	@echo distributor=\"$(DISTRIBUTOR)\" >> $@
 	@echo distributor_url=\"$(DISTRIBUTOR_URL)\" >> $@
-ifneq ($(strip $(OS_MIN_VER)),)
+ifeq ($(call version_lt, ${TC_OS_MIN_VER}, 6.1)$(call version_ge, ${TC_OS_MIN_VER}, 3.0),11)
+	@echo firmware=\"$(OS_MIN_VER)\" >> $@
+else
 	@echo os_min_ver=\"$(OS_MIN_VER)\" >> $@
-else
-	@echo os_min_ver=\"$(TC_OS_MIN_VER)\" >> $@
-endif
-ifeq ($(call version_le, ${TC_OS_MIN_VER}, 6.1),1)
-ifneq ($(strip $(FIRMWARE)),)
-	@echo firmware=\"$(FIRMWARE)\" >> $@
-else
-	@echo firmware=\"$(TC_OS_MIN_VER)\" >> $@
-endif
-endif
 ifneq ($(strip $(OS_MAX_VER)),)
 	@echo os_max_ver=\"$(OS_MAX_VER)\" >> $@
+endif
 endif
 ifneq ($(strip $(BETA)),)
 	@echo beta=\"yes\" >> $@
@@ -185,10 +214,10 @@ endif
 # for non startable (i.e. non service, cli tools only)
 # as default is 'yes' we only add this value for 'no'
 ifeq ($(STARTABLE),no)
-ifeq ($(call version_ge, ${TCVERSION}, 6.1),1)
-	@echo ctl_stop=\"$(STARTABLE)\" >> $@
-else
+ifeq ($(call version_lt, ${TC_OS_MIN_VER}, 6.1)$(call version_ge, ${TC_OS_MIN_VER}, 3.0),11)
 	@echo startable=\"$(STARTABLE)\" >> $@
+else
+	@echo ctl_stop=\"$(STARTABLE)\" >> $@
 endif
 endif
 
@@ -304,9 +333,6 @@ $(DSM_SCRIPTS_DIR)/preupgrade:
 $(DSM_SCRIPTS_DIR)/postupgrade:
 	@$(dsm_script_redirect)
 
-$(DSM_SCRIPTS_DIR)/%: $(filter %.sh,$(ADDITIONAL_SCRIPTS))
-	@$(dsm_script_copy)
-
 # Package Icons
 .PHONY: icons
 icons:
@@ -328,35 +354,45 @@ info-checksum:
 	@$(MSG) "Creating checksum for $(SPK_NAME)"
 	@sed -i -e "s|checksum=\".*|checksum=\"$$(md5sum $(WORK_DIR)/package.tgz | cut -d" " -f1)\"|g" $(WORK_DIR)/INFO
 
+
+# file names to be used with "find" command
+WIZARD_FILE_NAMES  =     -name "install_uifile" 
+WIZARD_FILE_NAMES += -or -name "install_uifile_???" 
+WIZARD_FILE_NAMES += -or -name "install_uifile.sh"
+WIZARD_FILE_NAMES += -or -name "install_uifile_???.sh"
+WIZARD_FILE_NAMES += -or -name "upgrade_uifile"
+WIZARD_FILE_NAMES += -or -name "upgrade_uifile_???"
+WIZARD_FILE_NAMES += -or -name "upgrade_uifile.sh"
+WIZARD_FILE_NAMES += -or -name "upgrade_uifile_???.sh"
+WIZARD_FILE_NAMES += -or -name "uninstall_uifile"
+WIZARD_FILE_NAMES += -or -name "uninstall_uifile_???"
+WIZARD_FILE_NAMES += -or -name "uninstall_uifile.sh"
+WIZARD_FILE_NAMES += -or -name "uninstall_uifile_???.sh"
+
+
 .PHONY: wizards
 wizards:
 ifeq ($(call version_ge, ${TCVERSION}, 7.0),1)
 	@$(MSG) "Create default DSM7 uninstall wizard"
 	@mkdir -p $(DSM_WIZARDS_DIR)
 	@find $(SPKSRC_MK)wizard -maxdepth 1 -type f -and \( -name "uninstall_uifile" -or -name "uninstall_uifile_???" \) -print -exec cp -f {} $(DSM_WIZARDS_DIR) \;
+ifeq ($(strip $(WIZARDS_DIR)),)
+	$(eval SPK_CONTENT += WIZARD_UIFILES)
+endif
 endif
 ifneq ($(strip $(WIZARDS_DIR)),)
 	@$(MSG) "Create DSM Wizards"
+	$(eval SPK_CONTENT += WIZARD_UIFILES)
 	@mkdir -p $(DSM_WIZARDS_DIR)
-	@find $${SPKSRC_WIZARDS_DIR} -maxdepth 1 -type f -and \( -name "install_uifile" -or -name "install_uifile_???" -or -name "install_uifile.sh" -or -name "install_uifile_???.sh" -or -name "upgrade_uifile" -or -name "upgrade_uifile_???" -or -name "upgrade_uifile.sh" -or -name "upgrade_uifile_???.sh" -or -name "uninstall_uifile" -or -name "uninstall_uifile_???" -or -name "uninstall_uifile.sh" -or -name "uninstall_uifile_???.sh" \) -print -exec cp -f {} $(DSM_WIZARDS_DIR) \;
-endif
-ifneq ($(strip $(WIZARDS_DIR)),)
-	@$(MSG) "Look for DSM Version specific Wizards: $(WIZARDS_DIR)$(TCVERSION)"
-	@mkdir -p $(DSM_WIZARDS_DIR)
+	@find $${SPKSRC_WIZARDS_DIR} -maxdepth 1 -type f -and \( $(WIZARD_FILE_NAMES) \) -print -exec cp -f {} $(DSM_WIZARDS_DIR) \;
 	@if [ -d "$(WIZARDS_DIR)$(TCVERSION)" ]; then \
-		find $${SPKSRC_WIZARDS_DIR}$(TCVERSION) -maxdepth 1 -type f -and \( -name "install_uifile" -or -name "install_uifile_???" -or -name "install_uifile.sh" -or -name "install_uifile_???.sh" -or -name "upgrade_uifile" -or -name "upgrade_uifile_???" -or -name "upgrade_uifile.sh" -or -name "upgrade_uifile_???.sh" -or -name "uninstall_uifile" -or -name "uninstall_uifile_???" -or -name "uninstall_uifile.sh" -or -name "uninstall_uifile_???.sh" \) -print -exec cp -f {} $(DSM_WIZARDS_DIR) \; ;\
+	    $(MSG) "Create DSM Version specific Wizards: $(WIZARDS_DIR)$(TCVERSION)"; \
+		find $${SPKSRC_WIZARDS_DIR}$(TCVERSION) -maxdepth 1 -type f -and \( $(WIZARD_FILE_NAMES) \) -print -exec cp -f {} $(DSM_WIZARDS_DIR) \; ;\
 	fi
 endif
-ifneq ($(strip $(WIZARDS_DIR)),)
+ifneq ($(wildcard $(DSM_WIZARDS_DIR)/*),)
 	@find $(DSM_WIZARDS_DIR) -maxdepth 1 -type f -not -name "*.sh" -print -exec chmod 0644 {} \;
 	@find $(DSM_WIZARDS_DIR) -maxdepth 1 -type f -name "*.sh" -print -exec chmod 0755 {} \;
-	$(eval SPK_CONTENT += WIZARD_UIFILES)
-else
-ifeq ($(call version_ge, ${TCVERSION}, 7.0),1)
-	@find $(DSM_WIZARDS_DIR) -maxdepth 1 -type f -not -name "*.sh" -print -exec chmod 0644 {} \;
-	@find $(DSM_WIZARDS_DIR) -maxdepth 1 -type f -name "*.sh" -print -exec chmod 0755 {} \;
-	$(eval SPK_CONTENT += WIZARD_UIFILES)
-endif
 endif
 
 .PHONY: conf
