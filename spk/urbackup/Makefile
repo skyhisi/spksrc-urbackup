@@ -1,5 +1,5 @@
 SPK_NAME = urbackup
-SPK_VERS = 2.4.15
+SPK_VERS = 2.5.27
 SPK_REV = 1
 SPK_ICON = src/urbackup.png
 DSM_UI_DIR = app
@@ -21,6 +21,7 @@ LICENSE  = AGPL-3.0
 
 # 'auto' reserved value grabs SPK_NAME
 SERVICE_USER         = auto
+GROUP=sc-backup
 
 SERVICE_SETUP        = src/service-setup.sh
 STARTABLE            = yes
