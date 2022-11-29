@@ -18,8 +18,9 @@ LICENSE  = Old MIT
 GNU_CONFIGURE = 1
 CONFIGURE_ARGS = -Dtests=disabled
 
+include ../../mk/spksrc.common.mk
 ifeq ($(call version_lt, $(TCVERSION), 7),1)
-ADDITIONAL_CFLAGS  = -std=c11
+ADDITIONAL_CFLAGS = -std=c11
 endif
 
 # let it find glib-mkenums
