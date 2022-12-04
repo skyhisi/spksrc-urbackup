@@ -19,7 +19,7 @@ HOMEPAGE = https://www.urbackup.org/
 LICENSE  = AGPL-3.0
 
 
-# 'auto' reserved value grabs SPK_NAME
+# 'auto' reserved value grabs SPK_NAME 
 SERVICE_USER         = auto
 GROUP=sc-backup
 
