@@ -1,5 +1,5 @@
 PKG_NAME = urbackup-server
-PKG_VERS = 2.5.27
+PKG_VERS = 2.5.30
 PKG_EXT = tar.gz
 PKG_DIST_NAME = $(PKG_NAME)-$(PKG_VERS).$(PKG_EXT)
 PKG_DIST_SITE = https://hndl.urbackup.org/Server/$(PKG_VERS)
