@@ -7,6 +7,7 @@ PKG_DIST_FILE = $(PKG_NAME)-$(PKG_VERS).$(PKG_EXT)
 PKG_DIR = $(PKG_NAME)-$(PKG_VERS)
 
 DEPENDS = cross/curl cross/zlib cross/zstd cross/cryptopp cross/openssl
+export BUILD_CURL_WITH="ldap"
 
 HOMEPAGE = https://www.urbackup.org/
 COMMENT  = UrBackup is an easy to setup open source client/server backup system, that through a combination of image and file backups accomplishes both data safety and a fast restoration time.
