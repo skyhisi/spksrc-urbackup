@@ -437,7 +437,7 @@ $(STAGING_DIR)/$(DSM_UI_DIR)/config:
 	@echo "    \"grantPrivilege\": \"all\"," >> $@
 	@echo "    \"advanceGrantPrivilege\": true" >> $@
 	@echo '} } }' >> $@
-	cat $@ | python -m json.tool > /dev/null
+	cat $@ | python3 -m json.tool > /dev/null
 
 SERVICE_FILES += $(STAGING_DIR)/$(DSM_UI_DIR)/config
 endif
