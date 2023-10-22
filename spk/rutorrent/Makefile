@@ -1,10 +1,10 @@
 SPK_NAME = rutorrent
-SPK_VERS = 3.10
-SPK_REV = 13
+SPK_VERS = 4.1.5
+SPK_REV = 16
 SPK_ICON = src/rutorrent.png
 DSM_UI_DIR = app
 
-SPK_DEPENDS = "WebStation:python310:PHP7.4"
+SPK_DEPENDS = "WebStation:python311:PHP7.4:Apache2.4"
 WHEELS = src/requirements-pure.txt
 
 DEPENDS = cross/busybox cross/curl cross/mediainfo cross/rtorrent cross/rutorrent cross/screen cross/unzip
@@ -27,7 +27,7 @@ DESCRIPTION = ruTorrent is a front-end for the popular Bittorrent client rTorren
 ADMIN_URL = /rutorrent/
 STARTABLE = yes
 DISPLAY_NAME = ruTorrent
-CHANGELOG = "<ol><li>Update to Python 3.10</li><li>Update to PHP 7.4</li><li>Remove tools from procps-ng</li><li>Fix support of DSM 7.</li><li>Fix torrent creation wizard (\#5288)</li><li>Add service port declarations</li></ol>"
+CHANGELOG = "<ol><li>Upgrade rutorrent to 4.1.5</li><li>Update to Python 3.11</li><li>Update to PHP 7.4</li><li>Remove tools from procps-ng</li><li>Fix support of DSM 7.</li><li>Fix torrent creation wizard (\#5288)</li><li>Add service port declarations</li><li>Migrate to OpenSSL 3.1.2</li></ol>"
 
 HOMEPAGE = https://github.com/Novik/ruTorrent
 LICENSE = GPLv3
@@ -45,10 +45,6 @@ FWPORTS = src/rutorrent.sc
 CONF_DIR = src/conf/
 WIZARDS_DIR = $(WORK_DIR)/generated-wizards
 WIZARDS = install_uifile upgrade_uifile
-
-INSTALL_DEP_SERVICES = apache-web
-START_DEP_SERVICES = apache-web
-INSTUNINST_RESTART_SERVICES = apache-web
 
 POST_STRIP_TARGET = rutorrent_extra_install
 
@@ -98,7 +94,3 @@ rutorrent_extra_install:
 	install -m 755 -d $(STAGING_DIR)/var/.session
 	install -m 644 src/rtorrent.rc $(STAGING_DIR)/var/rtorrent.rc
 	install -m 775 -d $(STAGING_DIR)/tmp
-ifeq ($(call version_lt, $(TCVERSION), 7.0),1)
-	install -m 755 -d $(STAGING_DIR)/etc/php/conf.d/
-	install -m 644 src/etc/php/conf.d/com.synocommunity.rutorrent.ini $(STAGING_DIR)/etc/php/conf.d/com.synocommunity.rutorrent.ini
-endif

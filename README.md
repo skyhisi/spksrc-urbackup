@@ -8,15 +8,15 @@ DSM 7 was released on June 29 2021 as Version 7.0.41890.
 
 ## In SynoCommunity some packages are available for DSM 7 but some are not.
 * You find the status of the packages in the issue [#4524] **Meta: DSM7 package status**
-* Despite you see packages of SynoCommunity in the Package Center of your Diskstation with DSM 7, some of the packages are not compatible with DSM 7.
+* If you are running DSM7, some packages that are not compatible may continue appear in the Package Center of your Disk Station.
 * PLEASE do not create issues saying that package `xy` cannot be installed on DSM 7. All packages not yet ported to DSM 7 will refuse the installation with a message about "package requires root privileges" (or "invalid file format", ...).
 * Please regard all DSM 7 packages as beta versions (the synocommunity package repository is not capable to declare packages as beta only for DSM 7).
 * **ATTENTION**: As reported, package configuration settings may be lost following the upgrade to DSM 7 and the execution of a Package repair. Make sure to backup your settings and configuration for your SynoCommunity packages before installation of DSM 7 to facilitate restoration if needed.
 * Packages of the following kind will need some time to make DSM 7 compatible
-  * Packages depending MySQL database must be migrated to MariaDB 10
-  * Packages with installation Wizard to configure a shared folder (all download related packages and others)
-  * Packages that integrate into DSM webstation
-* As this is a community project where people spend there spare time for contribution, it may take a long time until most of the packages are ported to DSM 7. (There are still packages here that are not ported from DSM 5 to DSM 6 yet).
+  * Packages depending on MySQL database must be migrated to MariaDB 10
+  * Packages that use an Installation Wizard to configure a shared folder (all download related packages and others)
+  * Packages that integrate into DSM Webstation
+* As this is a community project where people contribue in their spare time, it may take awhile until packages are ported to DSM 7. (There are still packages here that are not ported from DSM 5 to DSM 6 yet).
 
 # spksrc
 spksrc is a cross compilation framework intended to compile and package software for Synology NAS devices. Packages are made available via the [SynoCommunity repository].
@@ -61,8 +61,8 @@ sudo apt install autoconf-archive autogen automake autopoint bash bc bison \
                  g++-multilib gawk gettext git gperf imagemagick intltool jq libbz2-dev libc6-i386 \
                  libcppunit-dev libffi-dev libgc-dev libgmp3-dev libltdl-dev libmount-dev libncurses-dev \
                  libpcre3-dev libssl-dev libtool libunistring-dev lzip mercurial moreutils ninja-build \
-                 patchelf php pkg-config python2 python3 python3-distutils rename rsync scons subversion \
-                 swig texinfo unzip xmlto zlib1g-dev
+                 patchelf php pkg-config python2 python3 python3-distutils rename ruby-mustache rsync scons subversion \
+                 swig texinfo unzip xmlto zip zlib1g-dev
 wget https://bootstrap.pypa.io/pip/2.7/get-pip.py -O - | sudo python2
 sudo pip2 install wheel httpie
 wget https://bootstrap.pypa.io/get-pip.py -O - | sudo python3
@@ -77,7 +77,7 @@ From there, follow the instructions in the [Developers HOW TO].
 
 ### LXC
 A container based on 64-bit version of Debian 11 stable OS is recommended. Non-x86 architectures are not supported.  The following assumes your LXD/LXC environment is already initiated (e.g. `lxc init`) and you have minimal LXD/LXC basic knowledge :
-1. Create a new container (will use x864_64/amd64 arch by default): `lxc launch images:debian/11 spksrc`
+1. Create a new container (will use x86_64/amd64 arch by default): `lxc launch images:debian/11 spksrc`
 2. Enable i386 arch: `lxc exec spksrc -- /usr/bin/dpkg --add-architecture i386`
 3. Update apt channels: `lxc exec spksrc -- /usr/bin/apt update`
 4. Install all required packages:
@@ -87,8 +87,8 @@ lxc exec spksrc -- /usr/bin/apt install autoconf-archive autogen automake autopo
                                 g++-multilib gawk gettext git gperf imagemagick intltool jq libbz2-dev libc6-i386 \
                                 libcppunit-dev libffi-dev libgc-dev libgmp3-dev libltdl-dev libmount-dev libncurses-dev \
                                 libpcre3-dev libssl-dev libtool libunistring-dev lzip mercurial moreutils ninja-build \
-                                patchelf php pkg-config python2 python3 python3-distutils rename rsync scons subversion \
-                                swig texinfo unzip xmlto zlib1g-dev
+                                patchelf php pkg-config python2 python3 python3-distutils rename rsync ruby-mustache scons subversion \
+                                swig texinfo unzip xmlto zip zlib1g-dev
 ```
 5. Install `python2` wheels:
 ```bash

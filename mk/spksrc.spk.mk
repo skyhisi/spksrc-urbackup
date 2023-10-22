@@ -211,6 +211,15 @@ endif
 ifneq ($(strip $(INSTUNINST_RESTART_SERVICES)),)
 	@echo instuninst_restart_services=\"$(INSTUNINST_RESTART_SERVICES)\" >> $@
 endif
+ifneq ($(strip $(INSTALL_REPLACE_PACKAGES)),)
+	@echo install_replace_packages=\"$(INSTALL_REPLACE_PACKAGES)\" >> $@
+endif
+ifneq ($(strip $(USE_DEPRECATED_REPLACE_MECHANISM)),)
+	@echo use_deprecated_replace_mechanism=\"$(USE_DEPRECATED_REPLACE_MECHANISM)\" >> $@
+endif
+ifneq ($(strip $(CHECKPORT)),)
+	@echo checkport=\"$(CHECKPORT)\" >> $@
+endif
 
 # for non startable (i.e. non service, cli tools only)
 # as default is 'yes' we only add this value for 'no'
@@ -273,6 +282,9 @@ endif
 # Wizard
 DSM_WIZARDS_DIR = $(WORK_DIR)/WIZARD_UIFILES
 
+ifneq ($(strip $(WIZARDS_TEMPLATES_DIR)),)
+WIZARDS_DIR = $(WORK_DIR)/generated-wizards
+endif
 ifneq ($(WIZARDS_DIR),)
 # export working wizards dir to the shell for use later at compile-time
 export SPKSRC_WIZARDS_DIR=$(WIZARDS_DIR)
@@ -381,6 +393,46 @@ ifeq ($(strip $(WIZARDS_DIR)),)
 	$(eval SPK_CONTENT += WIZARD_UIFILES)
 endif
 endif
+ifneq ($(strip $(WIZARDS_TEMPLATES_DIR)),)
+	@$(MSG) "Generate DSM Wizards from templates"
+	@mkdir -p $(WIZARDS_DIR)
+	$(eval IS_DSM_6_OR_GREATER = $(if $(filter 1,$(call version_ge, $(TCVERSION), 6.0)),true,false))
+	$(eval IS_DSM_7_OR_GREATER = $(if $(filter 1,$(call version_ge, $(TCVERSION), 7.0)),true,false))
+	$(eval IS_DSM_7 = $(IS_DSM_7_OR_GREATER))
+	$(eval IS_DSM_6 = $(if $(filter true,$(IS_DSM_6_OR_GREATER)),$(if $(filter true,$(IS_DSM_7)),false,true),false))
+	@for template in `find $(WIZARDS_TEMPLATES_DIR) -maxdepth 1 -type f -and \( $(WIZARD_FILE_NAMES) \) -print`; do \
+		template_filename="$$(basename $${template})"; \
+		template_name="$${template_filename%.*}"; \
+		if [ "$${template_name}" = "$${template_filename}" ]; then \
+			template_suffix=; \
+		else \
+			template_suffix=".$${template_filename##*.}"; \
+		fi; \
+		template_file_path="$(WIZARDS_TEMPLATES_DIR)/$${template_filename}"; \
+		for suffix in '' $(patsubst %,_%,$(LANGUAGES)) ; do \
+			template_file_localization_data_path="$(WIZARDS_TEMPLATES_DIR)/$${template_name}$${suffix}.yml"; \
+			output_file="$(WIZARDS_DIR)/$${template_name}$${suffix}$${template_suffix}"; \
+			if [ -f "$${template_file_localization_data_path}" ]; then \
+				{ \
+					echo "IS_DSM_6_OR_GREATER: $(IS_DSM_6_OR_GREATER)"; \
+					echo "IS_DSM_6: $(IS_DSM_6)"; \
+					echo "IS_DSM_7_OR_GREATER: $(IS_DSM_7_OR_GREATER)"; \
+					echo "IS_DSM_7: $(IS_DSM_7)"; \
+					cat "$${template_file_localization_data_path}"; \
+				} | mustache - "$${template_file_path}" >"$${output_file}"; \
+				if [ "$${template_suffix}" = "" ]; then \
+					jq_failed=0; \
+					errors=$$(jq . "$${output_file}" 2>&1) || jq_failed=1; \
+					if [ "$${jq_failed}" != "0" ]; then \
+						echo "Invalid wizard file generated $${output_file}:"; \
+						echo "$${errors}"; \
+						exit 1; \
+					fi; \
+				fi; \
+			fi; \
+		done; \
+	done
+endif
 ifneq ($(strip $(WIZARDS_DIR)),)
 	@$(MSG) "Create DSM Wizards"
 	$(eval SPK_CONTENT += WIZARD_UIFILES)
@@ -426,12 +478,20 @@ endif
 ifeq ($(PUBLISH_API_KEY),)
 	$(error Set PUBLISH_API_KEY in local.mk)
 endif
-	http --verify=no --ignore-stdin --auth $(PUBLISH_API_KEY): POST $(PUBLISH_URL)/packages @$(SPK_FILE_NAME)
+	@response=$$(http --verify=no --ignore-stdin --auth $(PUBLISH_API_KEY): POST $(PUBLISH_URL)/packages @$(SPK_FILE_NAME) --print=hb); \
+	response_code=$$(echo "$$response" | grep -Fi "HTTP/1.1" | awk '{print $$2}'); \
+	if [ "$$response_code" = "201" ]; then \
+		output=$$(echo "$$response" | awk '/^[[:space:]]*$$/ {p=1;next} p'); \
+		echo "Package published successfully\n$$output" | tee --append publish-$*.log; \
+	else \
+		echo "ERROR: Failed to publish package - HTTP response code $$response_code\n$$response" | tee --append publish-$*.log; \
+		exit 1; \
+	fi
 
 
 ### Clean rules
 clean:
-	rm -fr work work-* build-*.log
+	rm -fr work work-* build-*.log publish-*.log
 
 spkclean:
 	rm -fr work-*/.copy_done \
@@ -453,6 +513,29 @@ wheelclean: spkclean
 	rm -fr work-*/.wheel_done \
 	       work-*/wheelhouse \
 	       work-*/install/var/packages/**/target/share/wheelhouse
+	@make --no-print-directory dependency-flat | sort -u | grep cross/ | while read depend ; do \
+	   makefile="../../$${depend}/Makefile" ; \
+	   if grep -q spksrc.python-wheel.mk $${makefile} ; then \
+	      pkgstr=$$(grep ^PKG_NAME $${makefile}) ; \
+	      pkgname=$$(echo $${pkgstr#*=} | xargs) ; \
+	      echo "rm -fr work-*/$${pkgname}*\\n       work-*/.$${pkgname}-*" ; \
+	      rm -fr work-*/$${pkgname}* \
+                     work-*/.$${pkgname}-* ; \
+	   fi ; \
+	done
+
+wheelcleancache: wheelclean
+	rm -fr work-*/pip
+
+wheelcleanall: wheelcleancache
+	rm -fr ../../distrib/pip
+
+pythonclean: wheelcleanall
+	rm -fr work-*/.[Pp]ython*-install_done \
+	rm -fr work-*/crossenv
+
+pythoncleanall: pythonclean
+	rm -fr work-*/[Pp]ython* work-*/.python*
 
 all: package
 ifneq ($(filter 1 on ON,$(PSTAT)),)
@@ -582,6 +665,7 @@ kernel-modules-%:
 	   archs2process=$* ; \
 	fi ; \
 	$(MSG) ARCH to be processed: $${archs2process} ; \
+	set -e ; \
 	for arch in $${archs2process} ; do \
 	  $(MSG) "Processing $${arch} ARCH" ; \
 	  MAKEFLAGS= $(PSTAT_TIME) $(MAKE) WORK_DIR=$(PWD)/work-$* ARCH=$$(echo $${arch} | cut -f1 -d-) TCVERSION=$$(echo $${arch} | cut -f2 -d-) strip 2>&1 | tee --append build-$*.log ; \
@@ -622,7 +706,7 @@ ifneq ($(strip $(REQUIRE_KERNEL_MODULE)),)
 else
 	# handle and allow parallel build for:  arch-<arch> | make arch-<arch>-X.Y
 	@$(MSG) BUILDING and PUBLISHING package for arch $*
-	@MAKEFLAGS= $(PSTAT_TIME) GCC_DEBUG_INFO="$(GCC_DEBUG_INFO)" $(MAKE) ARCH=$(basename $(subst -,.,$(basename $(subst .,,$*)))) TCVERSION=$(if $(findstring $*,$(basename $(subst -,.,$(basename $(subst .,,$*))))),$(DEFAULT_TC),$(notdir $(subst -,/,$*))) publish 2>&1 | tee --append build-$*.log ; \
+	@MAKEFLAGS= $(PSTAT_TIME) GCC_DEBUG_INFO="$(GCC_DEBUG_INFO)" $(MAKE) ARCH=$(basename $(subst -,.,$(basename $(subst .,,$*)))) TCVERSION=$(if $(findstring $*,$(basename $(subst -,.,$(basename $(subst .,,$*))))),$(DEFAULT_TC),$(notdir $(subst -,/,$*))) publish 2>&1 | tee --append build-$*.log >(grep -e '^http' -e '^{"package":' -e '^{"message":' >> publish-$*.log) ; \
 	  [ $${PIPESTATUS[0]} -eq 0 ] || false
 endif
 

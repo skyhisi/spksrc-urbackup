@@ -1,11 +1,11 @@
 SPK_NAME = sabnzbd
-SPK_VERS = 3.7.2
-SPK_REV = 60
+SPK_VERS = 4.1.0
+SPK_REV = 66
 SPK_ICON = src/sabnzbd.png
 
-BUILD_DEPENDS = cross/python311
-DEPENDS = cross/busybox cross/par2cmdline cross/unrar cross/p7zip cross/$(SPK_NAME)
-SPK_DEPENDS = "python311"
+PYTHON_PACKAGE = python311
+DEPENDS = cross/busybox cross/par2cmdline-turbo cross/unrar cross/p7zip cross/$(SPK_NAME)
+SPK_DEPENDS = "python311>=3.11.5-8"
 
 WHEELS = src/requirements-crossenv.txt src/requirements-pure.txt
 
@@ -15,7 +15,7 @@ DESCRIPTION_FRE = SABnzbd rend Usenet aussi simple et automatisé que possible. 
 DESCRIPTION_SPN = SABnzbd hace que Usenet sea lo más simple posible, automatizando todo lo que se puede. Todo lo que tienes que hacer es agregar un archivo .nzb. SABnzbd empieza desde ahí. Tus archivos serán automáticamente descargados, verificados, reparados, descomprimidos y archivados.
 DISPLAY_NAME = SABnzbd
 STARTABLE = yes
-CHANGELOG = "Update SABnzbd to 3.7.2."
+CHANGELOG = "1. Update SABnzbd to 4.1.0.<br/>2. Use par2cmdline-turbo instead of par2cmdline.<br/>2. Update UnRar to 6.23 (security fixes)."
 
 HOMEPAGE  = https://sabnzbd.org
 LICENSE   = GPL
@@ -28,6 +28,9 @@ SERVICE_SETUP = src/service-setup.sh
 SERVICE_PORT = 8080
 SERVICE_PORT_TITLE = $(DISPLAY_NAME)
 
+# Ensure C++11 compatibility for unrar
+UNSUPPORTED_ARCHS = $(ARMv5_ARCHS) $(OLD_PPC_ARCHS)
+
 # Admin link for in DSM UI
 ADMIN_PORT = $(SERVICE_PORT)
 
@@ -38,7 +41,13 @@ ENV += BUSYBOX_CONFIG="nice ionice"
 
 SPK_COMMANDS = bin/7za
 
-include ../../mk/spksrc.spk.mk
+# [cryptography]
+DEPENDS += cross/cryptography
+
+include ../../mk/spksrc.python.mk
+
+# prefer native python tools (pip, maturin, ...) used for orjson
+ENV += PATH=$(realpath $(WORK_DIR)/../../../native/$(PYTHON_PACKAGE)/work-native/install/usr/local/bin):$(PATH)
 
 .PHONY: sabnzbd_extra_install
 sabnzbd_extra_install:
