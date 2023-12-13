@@ -1,6 +1,6 @@
 SPK_NAME = urbackup
 SPK_VERS = 2.5.35
-SPK_REV = 1
+SPK_REV = 2
 SPK_ICON = src/urbackup.png
 DSM_UI_DIR = app
 
