@@ -1,9 +1,10 @@
 
 # Package
-PACKAGE="cops"
-DNAME="COPS"
+PACKAGE="bicbucstriim"
+DNAME="BicBucStriim"
+SHORTNAME="bbs"
 SC_PKG_PREFIX="com-synocommunity-packages-"
-PACKAGE_NAME="${SC_PKG_PREFIX}${PACKAGE}"
+PACKAGE_NAME="${SC_PKG_PREFIX}${SHORTNAME}"
 
 # Others
 SYNOSVC="/usr/syno/sbin/synoservice"
@@ -12,21 +13,26 @@ WEB_DIR="/var/services/web_packages"
 if [ $SYNOPKG_DSM_VERSION_MAJOR -lt 7 ];then
     WEB_DIR="/var/services/web"
 fi
-WEB_ROOT="${WEB_DIR}/${PACKAGE}"
+WEB_ROOT="${WEB_DIR}/${SHORTNAME}"
+
+if [ ${SYNOPKG_DSM_VERSION_MAJOR} -lt 7 ]; then
+    WEB_USER="http"
+    WEB_GROUP="http"
+fi
 
 validate_preinst ()
 {
-    # Check for modification to PHP template defaults on DSM 6
-    if [ ${SYNOPKG_DSM_VERSION_MAJOR} -lt 7 ]; then
-        WS_TMPL_PATH="/var/packages/WebStation/target/misc"
-        WS_TMPL_FILE="php74_fpm.mustache"
-        FULL_WS_TMPL_FILE="${WS_TMPL_PATH}/${WS_TMPL_FILE}"
-        # Check for PHP template defaults
-        if ! grep -q -E '^user = http$' "${FULL_WS_TMPL_FILE}" || ! grep -q -E '^listen\.owner = http$' "${FULL_WS_TMPL_FILE}"; then
-            echo "PHP template defaults have been modified. Installation is not supported."
-            exit 1
-            fi
+  # Check for modification to PHP template defaults on DSM 6
+  if [ ${SYNOPKG_DSM_VERSION_MAJOR} -lt 7 ]; then
+    WS_TMPL_PATH="/var/packages/WebStation/target/misc"
+    WS_TMPL_FILE="php74_fpm.mustache"
+    FULL_WS_TMPL_FILE="${WS_TMPL_PATH}/${WS_TMPL_FILE}"
+    # Check for PHP template defaults
+    if ! grep -q -E '^user = http$' "${FULL_WS_TMPL_FILE}" || ! grep -q -E '^listen\.owner = http$' "${FULL_WS_TMPL_FILE}"; then
+      echo "PHP template defaults have been modified. Installation is not supported."
+      exit 1
     fi
+  fi
 }
 
 service_postinst ()
@@ -36,7 +42,7 @@ service_postinst ()
         # Install the web interface
         echo "Installing web interface"
         ${MKDIR} ${WEB_ROOT}
-        rsync -aX ${SYNOPKG_PKGDEST}/share/${PACKAGE}/ ${WEB_ROOT} 2>&1
+        rsync -aX ${SYNOPKG_PKGDEST}/share/${SHORTNAME}/ ${WEB_ROOT} 2>&1
 
         # Install web configurations
         TEMPDIR="${SYNOPKG_PKGTMP}/web"
@@ -93,20 +99,10 @@ service_postinst ()
         fi
         # Clean-up temporary files
         ${RM} ${TEMPDIR}
-    fi
-    # Initialize or update configuration file based on user preferences.
-    if [ "${SYNOPKG_PKG_STATUS}" = "INSTALL" ]; then
-        CFG_FILE="${WEB_ROOT}/config_local.php"
-        DEFAULT_CFG_FILE="${SYNOPKG_PKGDEST}/web/config_local.php.synology"
-        # Create a default configuration file
-        if [ ! -f "${CFG_FILE}" ]; then
-            cp "${DEFAULT_CFG_FILE}" "${CFG_FILE}"
-            url_rewriting=$([ "${wizard_use_url_rewriting}" = "true" ] && echo "1" || echo "0")
-            sed -i -e "s|@calibre_dir@|${SHARE_PATH:=/volume1/calibre}/|g" ${CFG_FILE}
-            sed -i -e "s|@cops_title@|${wizard_cops_title:=COPS}|g" ${CFG_FILE}
-            sed -i -e "s|@use_url_rewriting@|${url_rewriting:=0}|g" ${CFG_FILE}
-            chmod ga+w "${CFG_FILE}"
-        fi
+
+        # Fix permissions
+        chown -R ${WEB_USER}:${WEB_GROUP} ${WEB_ROOT}
+        chmod -R u+rw ${WEB_ROOT}/data
     fi
 }
 
@@ -157,22 +153,22 @@ service_postuninst ()
 
 service_save ()
 {
-    # Save some stuff
+    # Save data
     [ -d ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE} ] && ${RM} ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}
     echo "Backup existing data to ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}"
-    ${MKDIR} ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/web
-    # Save cops configuration files
-    rsync -aX ${WEB_ROOT}/config_local.php ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/web/ 2>&1
-    rsync -aX ${WEB_ROOT}/.htaccess ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/web/ 2>&1
+    ${MKDIR} ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data
+    rsync -aX ${WEB_ROOT}/data/authors ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/ 2>&1
+    rsync -aX ${WEB_ROOT}/data/titles ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/ 2>&1
+    rsync -aX ${WEB_ROOT}/data/data.db ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/ 2>&1
 }
 
 service_restore ()
 {
-    # Restore some stuff
+    # Restore data
     echo "Restore previous data from ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}"
-    # Restore cops configuration files
-    rsync -aX --update -I ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/web/config_local.php ${WEB_ROOT}/config_local.php 2>&1
-    rsync -aX --update -I ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/web/.htaccess ${WEB_ROOT}/.htaccess 2>&1
+    rsync -aX --update -I ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/authors ${WEB_ROOT}/data/ 2>&1
+    rsync -aX --update -I ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/titles ${WEB_ROOT}/data/ 2>&1
+    rsync -aX --update -I ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}/data/data.db ${WEB_ROOT}/data/ 2>&1
 
     # Remove upgrade backup files
     ${RM} ${SYNOPKG_TEMP_UPGRADE_FOLDER}/${PACKAGE}

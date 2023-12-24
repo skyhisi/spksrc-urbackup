@@ -5,20 +5,10 @@
 	"enable_cache": true,
 	"enable_xdebug": false,
 	"extensions": [
-		"bcmath",
-		"bz2",
-		"curl",
 		"gd",
-		"gmp",
-		"imagick",
-		"imap",
-		"intl",
-		"ldap",
-		"openssl",
 		"pdo_sqlite",
 		"sqlite3",
-		"ssh2",
-		"zip",
+		"intl",
 		"zlib"
 	],
 	"fpm_settings": {
@@ -30,6 +20,6 @@
 	},
 	"open_basedir": "",
 	"php_settings": {},
-	"profile_desc": "PHP Profile for ownCloud",
-	"profile_name": "ownCloud Profile"
+	"profile_desc": "PHP profile used by cops",
+	"profile_name": "cops"
 }

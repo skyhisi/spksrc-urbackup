@@ -5,7 +5,6 @@ if [ -z ${SYNOPKG_PKGDEST_VOL} ]; then
 	SYNOPKG_PKGDEST_VOL="/volume1"
 fi
 SHAREDIR="${SYNOPKG_PKGNAME}"
-DIR_VALID="/^[\\w _-]+$/"
 
 quote_json ()
 {
@@ -125,9 +124,14 @@ getDeActiveate()
 	var adminStep = findStepByTitle(wizardDialog, "{{{OWNCLOUD_ADMIN_CONFIGURATION_STEP_TITLE}}}");
 	var domainStep = findStepByTitle(wizardDialog, "{{{OWNCLOUD_TRUSTED_DOMAINS_STEP_TITLE}}}");
 	var confirmStep = findStepByTitle(wizardDialog, "{{{OWNCLOUD_CONFIRM_RESTORE_STEP_TITLE}}}");
+	var phpStep = findStepByTitle(wizardDialog, "{{{PHP_PROFILES_TITLE}}}");
 	var checked = isRestoreChecked(wizardDialog);
 	if (currentStep.headline === "{{{OWNCLOUD_INSTALL_RESTORE_STEP_TITLE}}}") {
-		domainStep.nextId = "applyStep";
+		if (!phpStep) {
+			domainStep.nextId = "applyStep";
+		} else {
+			domainStep.nextId = phpStep.itemId;
+		}
 		if (checked) {
 			currentStep.nextId = confirmStep.itemId;
 		} else {
@@ -143,13 +147,14 @@ EOF
 # Check for multiple PHP profiles
 check_php_profiles ()
 {
+	SC_PKG_PREFIX="com-synocommunity-packages-"
+	SC_PKG_NAME="${SC_PKG_PREFIX}${SYNOPKG_PKGNAME}"
 	PHP_CFG_PATH="/usr/syno/etc/packages/WebStation/PHPSettings.json"
-	if [ "${SYNOPKG_DSM_VERSION_MAJOR}" -lt 7 ]; then
-		if jq -e 'to_entries | map(select((.key | startswith("com-synocommunity-packages-")) and .key != "com-synocommunity-packages-owncloud")) | length > 0' "${PHP_CFG_PATH}" >/dev/null; then
-			return 0  # true
-		else
-			return 1  # false
-		fi
+	if [ "${SYNOPKG_DSM_VERSION_MAJOR}" -lt 7 ] && \
+		jq -e 'to_entries | map(select((.key | startswith("'"${SC_PKG_PREFIX}"'")) and .key != "'"${SC_PKG_NAME}"'")) | length > 0' "${PHP_CFG_PATH}" >/dev/null; then
+		return 0  # true
+	else
+		return 1  # false
 	fi
 }
 
@@ -195,7 +200,7 @@ PAGE_ADMIN_CONFIG=$(/bin/cat<<EOF
 			"validator": {
 				"allowBlank": false,
 				"regex": {
-					"expr": "$(echo ${DIR_VALID} | quote_json)",
+					"expr": "/^[\\\w.][\\\w. -]{0,30}[\\\w.-][\\\\$]?$|^[\\\w][\\\\$]?$/",
 					"errorText": "{{{OWNCLOUD_DATA_DIRECTORY_VALIDATION_ERROR_TEXT}}}"
 				}
 			}
@@ -259,9 +264,9 @@ EOF
 
 PAGE_PHP_PROFILES=$(/bin/cat<<EOF
 {
-	"step_title": "{{PHP_PROFILES_TITLE}}",
+	"step_title": "{{{PHP_PROFILES_TITLE}}}",
 	"items": [{
-		"desc": "{{PHP_PROFILES_DESCRIPTION}}"
+		"desc": "{{{PHP_PROFILES_DESCRIPTION}}}"
 	}]
 }
 EOF
