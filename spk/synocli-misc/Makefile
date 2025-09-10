@@ -1,6 +1,6 @@
 SPK_NAME = synocli-misc
-SPK_VERS = 1.2
-SPK_REV = 5
+SPK_VERS = 1.3
+SPK_REV = 7
 SPK_ICON = src/synocli-misc.png
 
 DEPENDS  = cross/bc
@@ -12,9 +12,9 @@ DEPENDS += cross/expect
 MAINTAINER = SynoCommunity
 DISPLAY_NAME = SynoCli misc. Tools
 
-DESCRIPTION = "SynoCli misc. Tools provide a set of miscellaneous small command-line utilities: bc, errno, expect, ifdata, ifne, isutf8, lckdo, mispipe, parallel, pee, sponge, cal, col, colcrt, colrm, column, hardlink, hexdump, lsblk, lscpu, lsipc, lsirq, rev, wall, whereis, zramctl, uhubctl."
+DESCRIPTION = "SynoCli misc. Tools provide a set of miscellaneous small command-line utilities: bc, errno, expect, ifdata, ifne, isutf8, lckdo, mispipe, parallel, pee, sponge, ts, cal, col, colcrt, colrm, column, hardlink, findmnt, hexdump, lsblk, lscpu, lsipc, lsirq, rev, wall, whereis, zramctl, uhubctl."
 STARTABLE = no
-CHANGELOG = "1. Add hardlink command of util-linux.<br/>2. Add expect."
+CHANGELOG = "1. Add findmnt of util-linux. <br/>2. Update bc to v1.08.2. <br/>3. Update util-linux to v2.4.1. <br/>4. Update uhubctl to v2.6.0."
 
 HOMEPAGE = https://github.com/SynoCommunity/spksrc/wiki/FAQ-SynoCliMisc
 LICENSE  = Each tool is licensed under it's respective license.
@@ -32,6 +32,8 @@ SPK_COMMANDS += bin/mispipe
 SPK_COMMANDS += bin/parallel
 SPK_COMMANDS += bin/pee
 SPK_COMMANDS += bin/sponge
+# ts is a perl script
+SPK_COMMANDS += bin/ts
 
 # util-linux:
 SPK_COMMANDS += bin/cal
@@ -39,6 +41,8 @@ SPK_COMMANDS += bin/col
 SPK_COMMANDS += bin/colcrt
 SPK_COMMANDS += bin/colrm
 SPK_COMMANDS += bin/column
+# findmnt is not included in OLD_PPC_ARCHS
+SPK_COMMANDS += bin/findmnt
 SPK_COMMANDS += bin/hardlink
 SPK_COMMANDS += bin/hexdump
 # lsblk is not included in OLD_PPC_ARCHS

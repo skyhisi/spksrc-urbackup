@@ -1,10 +1,10 @@
 PKG_NAME = dotnet-sdk-8.0
-# Version 8.0.8, SDK 8.0.402
+# Version 8.0.19, SDK 8.0.413
 # https://dotnet.microsoft.com/download/dotnet/8.0
-PKG_VERS = 8.0.402
+PKG_VERS = 8.0.413
 PKG_EXT = tar.gz
 PKG_DIST_NAME = dotnet-sdk-$(PKG_VERS)-linux-x64.$(PKG_EXT)
-PKG_DIST_SITE = https://dotnetcli.azureedge.net/dotnet/Sdk/${PKG_VERS}
+PKG_DIST_SITE = https://builds.dotnet.microsoft.com/dotnet/Sdk/${PKG_VERS}
 
 HOMEPAGE = https://dotnet.microsoft.com/
 COMMENT  = A developer platform for building apps.

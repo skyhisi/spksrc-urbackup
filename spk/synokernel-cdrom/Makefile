@@ -3,7 +3,7 @@ SPK_VERS = 1.3
 SPK_REV = 3
 SPK_ICON = src/$(SPK_NAME).png
 
-DEPENDS = 
+DEPENDS =
 
 REQUIRE_KERNEL ?= 1
 REQUIRE_KERNEL_MODULE  = CONFIG_CDROM_PKTCDVD:drivers/cdrom:cdrom
@@ -13,7 +13,7 @@ MAINTAINER = th0ma7
 DESCRIPTION = "Provides Synology kernel CD-ROM drivers cdrom.ko and sr_mod.ko"
 CHANGELOG = "1. Support DSM-7.1 and DSM-7.2"
 
-UNSUPPORTED_ARCHS = $(PPC_ARCHS) epyc7002
+UNSUPPORTED_ARCHS = $(PPC_ARCHS) epyc7002 rtd1619b
 
 STARTABLE = no
 DISPLAY_NAME = SynoKernel USB CD-ROM drivers

@@ -1,14 +1,14 @@
 SPK_NAME = ffsync
-SPK_VERS = 0.17.3
-SPK_REV = 2
+SPK_VERS = 0.20.0
+SPK_REV = 7
 SPK_ICON = src/ffsync.png
 
 DEPENDS = cross/syncstorage-rs cross/diesel
 
-PYTHON_PACKAGE = python311
+PYTHON_PACKAGE = python312
 WHEELS = src/requirements-crossenv.txt src/requirements-pure.txt
 
-UNSUPPORTED_ARCHS = $(ARMv5_ARCHS) $(PPC_ARCHS)
+UNSUPPORTED_ARCHS = $(ARMv5_ARCHS) $(PPC_ARCHS) $(ARMv7L_ARCHS)
 
 REQUIRED_MIN_DSM = 6.0
 SPK_DEPENDS = MariaDB10:$(PYTHON_PACKAGE)
@@ -16,7 +16,7 @@ SPK_DEPENDS = MariaDB10:$(PYTHON_PACKAGE)
 MAINTAINER = SynoCommunity
 DESCRIPTION = An implementation of the Mozilla Sync-1.5 Server protocol used by the sync service in Firefox 29 and later. You can use Mozilla Sync Server to exchange browser data \(bookmarks, history, open tabs, passwords, add-ons, and the like\) between \'clients\' in a manner that respects a user\'s security and privacy. The service runs on port 8132.
 DISPLAY_NAME = Mozilla Sync Server
-CHANGELOG = "Update Mozilla Sync Server package to v0.17.3."
+CHANGELOG = "1. Update Mozilla Sync Server package to v0.20.0."
 
 HOMEPAGE = https://mozilla-services.readthedocs.io/en/latest/howtos/run-sync-1.5.html
 LICENSE = MPL 2.0
@@ -33,14 +33,10 @@ SERVICE_PORT_TITLE = $(DISPLAY_NAME)
 ADMIN_PORT = $(SERVICE_PORT)
 
 # [cryptography]
-# Mandatory of using OPENSSL_*_DIR starting with version >= 40
-# https://docs.rs/openssl/latest/openssl/#automatic
 DEPENDS += cross/openssl3
-ENV += OPENSSL_LIB_DIR=$(STAGING_INSTALL_PREFIX)/lib/
-ENV += OPENSSL_INCLUDE_DIR=$(STAGING_INSTALL_PREFIX)/include/
 
 # [mysqlclient]
-ENV += MYSQLCLIENT_CFLAGS="$(CFLAGS) -I$(STAGING_INSTALL_PREFIX)/include/mysql -I$(STAGING_INSTALL_PREFIX)/$(PYTHON_INC_DIR)"
+ENV += MYSQLCLIENT_CFLAGS="$(CFLAGS) -I$(STAGING_INSTALL_PREFIX)/include/mysql -I$(STAGING_INSTALL_PREFIX)/include/mariadb -I$(STAGING_INSTALL_PREFIX)/$(PYTHON_INC_DIR)"
 ENV += MYSQLCLIENT_LDFLAGS="$(LDFLAGS)"
 
 POST_STRIP_TARGET = ffsync_extra_install
@@ -48,15 +44,15 @@ POST_STRIP_TARGET = ffsync_extra_install
 include ../../mk/spksrc.python.mk
 
 # [greenlet]
-ifeq ($(call version_ge, $(TC_GCC), 4.9),1)
-WHEELS += src/requirements-crossenv-greenlet-v2.txt
-ifeq ($(call version_lt, $(TC_GCC), 5.0),1)
+# version >= 3.1: gcc >= 8   (DSM7.1) Mandatory require full c++20 support
+# version  = 3.0: gcc >= 4.9 (DSM6, comcerto2k) Mandatory require full c++11 support
+# version  = 1.x: gcc <  4.9 (DSM5, DSM6) Last known working version (armv5, hi3535) *** unsupported ***
+ifeq ($(call version_ge, $(TC_GCC), 8),1)
+WHEELS += greenlet==3.2.3
+else ifeq ($(call version_ge, $(TC_GCC), 4.9)$(call version_lt, $(TC_GCC), 5.0),11)
+WHEELS += greenlet==3.0.3
 WHEELS_CPPFLAGS += [greenlet] -std=c++11 -fpermissive
 endif
-else
-WHEELS += src/requirements-crossenv-greenlet-v1.txt
-endif
-
 
 .PHONY: ffsync_extra_install
 ffsync_extra_install:

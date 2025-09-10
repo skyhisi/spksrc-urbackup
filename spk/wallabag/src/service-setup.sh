@@ -33,9 +33,9 @@ exec_php ()
     else
         PHP_SETTINGS=""
     fi
-    # Fix for mysqli default socket on DSM 6
+    # Fix for pdo_mysql default socket on DSM 6
     if [ ${SYNOPKG_DSM_VERSION_MAJOR} -lt 7 ]; then
-        PHP_SETTINGS="${PHP_SETTINGS} -d mysqli.default_socket=/run/mysqld/mysqld10.sock"
+        PHP_SETTINGS="${PHP_SETTINGS} -d pdo_mysql.default_socket=/run/mysqld/mysqld10.sock"
     fi
     COMMAND="${PHP} ${PHP_SETTINGS} $*"
     if [ ${SYNOPKG_DSM_VERSION_MAJOR} -lt 7 ]; then
@@ -62,15 +62,15 @@ validate_preinst ()
 
     if [ "${SYNOPKG_PKG_STATUS}" = "INSTALL" ]; then
         if ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
-            echo "Incorrect MySQL 'root' password"
+            echo "Incorrect MariaDB 'root' password"
             exit 1
         fi
         if ${MYSQL} -u root -p"${wizard_mysql_password_root}" mysql -e "SELECT User FROM user" | grep ^${MYSQL_USER}$ > /dev/null 2>&1; then
-            echo "MySQL user '${MYSQL_USER}' already exists"
+            echo "MariaDB user '${MYSQL_USER}' already exists"
             exit 1
         fi
         if ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e "SHOW DATABASES" | grep ^${MYSQL_DATABASE}$ > /dev/null 2>&1; then
-            echo "MySQL database '${MYSQL_DATABASE}' already exists"
+            echo "MariaDB database '${MYSQL_DATABASE}' already exists"
             exit 1
         fi
 
@@ -235,7 +235,7 @@ validate_preuninst ()
 {
     # Check database
     if [ "${SYNOPKG_PKG_STATUS}" = "UNINSTALL" ] && ! ${MYSQL} -u root -p"${wizard_mysql_password_root}" -e quit > /dev/null 2>&1; then
-        echo "Incorrect MySQL 'root' password"
+        echo "Incorrect MariaDB 'root' password"
         exit 1
     fi
     # Check export directory
