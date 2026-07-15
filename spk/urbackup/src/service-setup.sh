@@ -17,11 +17,6 @@ service_postinst ()
     echo "${SYNOPKG_PKGHOME}" > ${SYNOPKG_PKGVAR}/urbackup/backupfolder
     mkdir -p -m 0755 /etc/urbackup
     echo "${SYNOPKG_PKGHOME}" > /etc/urbackup/backupfolder
-    sed -i 's/package/root/g' /var/packages/urbackup/conf/privilege
-    chown root "${SYNOPKG_PKGDEST}/bin/urbackup_snapshot_helper"
-    chown root "${SYNOPKG_PKGDEST}/bin/urbackup_mount_helper"
-    chmod +s "${SYNOPKG_PKGDEST}/bin/urbackup_snapshot_helper"
-    chmod +s "${SYNOPKG_PKGDEST}/bin/urbackup_mount_helper"
 }
 
 service_prestart ()
