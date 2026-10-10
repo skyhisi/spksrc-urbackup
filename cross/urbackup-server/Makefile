@@ -18,6 +18,9 @@ CONFIGURE_ARGS = --enable-packaging #--with-mountvhd   #--enable-embedded-crypto
 CONFIGURE_ARGS += --with-zlib=$(STAGING_INSTALL_PREFIX)
 CONFIGURE_ARGS += --with-crypto-prefix=$(STAGING_INSTALL_PREFIX)
 
+# UrBackup 2.5.38 needs C++11 (std::stoul & co.); libstdc++ ships it from gcc 4.9.
+MIN_GCC_VERSION = 4.9
+
 ADDITIONAL_CXXFLAGS = -Os -pipe -fPIC
 ADDITIONAL_CFLAGS = -Os
 
@@ -26,3 +29,9 @@ ADDITIONAL_CFLAGS = -Os
 #endif
 
 include ../../mk/spksrc.cross-cc.mk
+
+# gcc defaults to gnu++98 until gcc 5, where stoul/to_string are not in std:
+# pin the standard explicitly on the old toolchains (comcerto2k, DSM 6.2.4).
+ifeq ($(call version_lt,$(TC_GCC),5),1)
+ADDITIONAL_CXXFLAGS += -std=gnu++11
+endif

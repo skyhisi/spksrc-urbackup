@@ -11,6 +11,10 @@ PKG_DIR = $(PKG_NAME)-$(DIST_BASE_NAME)
 # ppc_power9.cpp:104: error: 'NULL' was not declared in this scope
 UNSUPPORTED_ARCHS = $(PPC_ARCHS)
 
+# Crypto++ 8.6 needs C++11; its ARM probes (test_arm_neon) fail on gcc < 4.9
+# (ARMv5 88f6281 ships 4.6.4).
+MIN_GCC_VERSION = 4.9
+
 HOMEPAGE = https://cryptopp.com/
 COMMENT  = Crypto++ Library is a free C++ class library of cryptographic schemes.
 LICENSE  = Boost Software License 1.0
