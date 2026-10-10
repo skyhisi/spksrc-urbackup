@@ -1,5 +1,0 @@
-bin:bin
-lib:lib
-rsc:share/urbackup
-rsc:share/locale
-rsc:share/aclocal

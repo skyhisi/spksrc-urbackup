@@ -6,7 +6,7 @@ PKG_DIST_SITE = https://hndl.urbackup.org/Server/$(PKG_VERS)
 PKG_DIST_FILE = $(PKG_NAME)-$(PKG_VERS).$(PKG_EXT)
 PKG_DIR = $(PKG_NAME)-$(PKG_VERS)
 
-DEPENDS = cross/curl cross/zlib cross/zstd cross/cryptopp cross/openssl
+DEPENDS = cross/curl cross/zlib cross/zstd cross/cryptopp cross/openssl3
 export BUILD_CURL_WITH="ldap"
 
 HOMEPAGE = https://www.urbackup.org/
