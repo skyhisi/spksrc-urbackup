@@ -32,11 +32,11 @@ SERVICE_PORT_TITLE =  Urbackup (HTTP)
 
 POST_STRIP_TARGET = urbackup_extra_install
 
+SPK_COMMANDS = bin/blockalign bin/urbackupclientctl sbin/urbackupclientbackend
+
+include ../../mk/spksrc.spk.mk
+
 .PHONY: urbackup_extra_install
 urbackup_extra_install:
 	install -m 755 -d $(STAGING_DIR)/bin
 	install -m 755 src/helper_fix $(STAGING_DIR)/bin
-
-SPK_COMMANDS = bin/blockalign bin/urbackupclientctl sbin/urbackupclientbackend
-
-include ../../mk/spksrc.spk.mk
